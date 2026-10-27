@@ -43,7 +43,7 @@ export const MIN_SHORT_SIDE = { sd: 480, hd: 1080 };
 export const ENGINE_HINTS = {
   error_below_min_image_size: 'The photo is too small. Use the camera at full resolution.',
   error_exceed_max_image_size: 'The photo is too large. Proof resizes before sending, so retake it.',
-  BadResultShape: 'YouCam answered, but not in the shape Proof expects, so nothing was saved. Try once more; if it repeats, the server log has the raw reply.',
+  BadResultShape: 'YouCam answered, but not in the shape Proof expects, so nothing was saved. Retrying would spend units on the same result; the server log has the raw reply.',
   TaskTimeout: 'YouCam is taking unusually long. Nothing was saved; try again in a minute.',
   error_src_face_too_small: 'Move closer: your face should fill the oval, about two thirds of the frame width.',
   error_src_face_out_of_bound: 'Part of your face is outside the frame. Center it in the oval.',

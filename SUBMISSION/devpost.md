@@ -29,7 +29,7 @@ Video: [[VIDEO_URL]] · Live demo: [[LIVE_DEMO_URL]] · Code: [[REPO_URL]]
 - **AI Skin Analysis (v2) is the instrument.** Every photo is one `skin-analysis` task with 10 SD concerns, through the full file, upload, task, poll and delete flow.
 - **`raw_score`, not `ui_score`.** The docs say `ui_score` is lifted on purpose as a motivator, which would squash real changes in a trial.
 - **Masks** show where a concern sits. **Units:** 14 per photo, 168 per trial, with image checks before anything is spent.
-- [[After the live study: "Measured YouCam's real photo-to-photo noise: ±X to ±Y raw points depending on the concern."]]
+- [[Pick one. If the live noise study ran: "Measured YouCam's real photo-to-photo noise: ±X to ±Y raw points depending on the concern." If not: "Live status: the client follows the docs field by field and fails loudly on any unexpected reply; noise levels are estimates until our repeatability study runs on the live API."]]
 
 ### What it does
 
@@ -46,8 +46,8 @@ Video: [[VIDEO_URL]] · Live demo: [[LIVE_DEMO_URL]] · Code: [[REPO_URL]]
 | | Proof | Before/after |
 |---|---|---|
 | Product does nothing: any of 10 concerns "improved" | 4.7% | 65.7% |
-| Real 8-point improvement caught | 95.5% | |
-| Real 5-point improvement caught | 74.2% | |
+| Real 8-point improvement caught (Improved or Small improvement) | 95.5% | |
+| Real 5-point improvement caught (Improved or Small improvement) | 74.2% | |
 | Range contains the true change | 92-95% | |
 
 Three things make it work: noise measured per person, a trend over every check-in instead of two photos, and multiple-testing correction with ranges widened to match. Waiting for the final check-in matters too: a verdict at every check-in would more than double the false alarms. The honest limits: there is no control group, so Proof shows change since you started, not its cause, and steady lighting drift can still fake a "worse" (8% in simulation).

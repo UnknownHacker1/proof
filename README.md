@@ -125,6 +125,8 @@ Checked by simulation (`npm run simulate`, 2,000 trials per scenario, verdict at
 | Real 5-point improvement caught at the final check-in | 74.2% | |
 | Real 8-point improvement caught at the final check-in | 95.5% | |
 | Real 12-point improvement caught at the final check-in | 99.8% | |
+
+"Caught" counts a verdict of Improved since you started or Small improvement on that concern. For a 5-point effect, Improved alone is about 56%.
 | Shown range contains the true change | 92.0% to 95.3% | |
 
 "Shown improving" means Improved since you started or Small improvement. Counting only the 5-point verdict, the null rate across ten concerns is 1.3%.

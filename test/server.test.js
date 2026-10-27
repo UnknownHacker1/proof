@@ -133,6 +133,7 @@ test('live mode: an unusable YouCam result is an error, never signed scores', as
     const j = await r.json();
     assert.equal(j.ok, false);
     assert.equal(j.code, 'BadResultShape');
+    assert.equal(j.retryable, false); // a deterministic shape failure would burn units on every retry
     assert.equal(j.receipt, undefined);
     assert.equal(j.scores, undefined);
     // YouCam billed the task, so the budget guard counts it rather than undercounting real spend.

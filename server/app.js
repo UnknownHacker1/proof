@@ -174,7 +174,7 @@ export function createApp(cfg, { fetchImpl = globalThis.fetch, log = console } =
           budget.charge(ip, err.spent);
           log.error?.('YouCam result unusable', err.code, err.message, JSON.stringify(err.body ?? null).slice(0, 4000));
           if (err.taskId && cfg.deleteAfter && err.code !== 'TaskTimeout') live.deleteTask(err.taskId).catch(() => {});
-          return send(res, 502, { ok: false, code: err.code, message: err.message, hint: err.hint, retryable: true, unitsCharged: err.spent });
+          return send(res, 502, { ok: false, code: err.code, message: err.message, hint: err.hint, retryable: err.code === 'TaskTimeout', unitsCharged: err.spent });
         }
         const engine = err.status === 200; // task finished with task_status=error: no units used
         return send(res, engine ? 422 : err.status === 401 ? 502 : err.status >= 400 && err.status < 500 ? 400 : 502, {
