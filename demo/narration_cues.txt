@@ -1,0 +1,30 @@
+[0:00.76] beat 00 hook-report (7.4 s)
+Twenty-seven days of selfies, one answer: since starting this serum, redness is better and hydration is worse.
+
+[0:10.17] beat 01 redness-trend (7.8 s)
+That's Proof. It runs your skincare like a small trial on your own face, with YouCam Skin AI as the measuring instrument.
+
+[0:19.88] beat 02 home-hero (12.7 s)
+Why not just compare before and after? Because skin scores wobble a few points between two photos taken a minute apart. Track ten concerns and a product that does nothing still looks like it improved something, most of the time.
+
+[0:34.54] beat 03 setup (6.5 s)
+So you start by saying what the product claims to fix. That's your question, decided before you see any results.
+
+[0:42.82] beat 04 LIVE-calibration (17.5 s)
+Day zero: three photos, a minute apart. Your skin can't change in a minute, so any difference between YouCam's scores is pure noise, for your face, your phone, your bathroom light. Some concerns stay steady to a couple of points; others wobble more, so their verdicts take longer.
+
+[1:02.14] beat 05 LIVE-checkin-then-trend (12.4 s)
+Every few days you check in. One photo is noisy, so small changes stay grey. Until the last check-in you only see the trend so far: no verdict, because peeking every few days would let luck win.
+
+[1:16.51] beat 06 verdicts-answer-key (14.6 s)
+At the final check-in, every concern gets a verdict with a range. 'No real change' is a real answer: the product isn't doing anything you'd notice. This demo trial was simulated with known true effects, and you can check Proof against them.
+
+[1:33.07] beat 07 method-architecture (21.8 s)
+I tested the method on two thousand simulated trials. When the product does nothing, a before-and-after selfie finds an improvement in 66% of them. Proof: under 5%. Under the hood: YouCam's file, task and polling APIs behind a small Node server that keeps the key, caps the units and deletes every task after reading it.
+
+[1:56.84] beat 08 card-signatures (9.0 s)
+At the end you get a card you can share, a review or a refund request, with a signature on every scan so nobody can quietly edit the numbers.
+
+[2:07.80] beat 09 close (4.0 s)
+Proof. Stop guessing whether your skincare works. Link below.
+

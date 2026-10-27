@@ -1,0 +1,180 @@
+1
+00:00:00,755 --> 00:00:03,579
+Twenty-seven days of selfies, one answer:
+
+2
+00:00:03,579 --> 00:00:05,371
+since starting this serum,
+
+3
+00:00:05,371 --> 00:00:08,195
+redness is better and hydration is worse.
+
+4
+00:00:10,168 --> 00:00:11,014
+That's Proof.
+
+5
+00:00:11,014 --> 00:00:14,792
+It runs your skincare like a small trial on your own face,
+
+6
+00:00:14,792 --> 00:00:17,918
+with YouCam Skin AI as the measuring instrument.
+
+7
+00:00:19,875 --> 00:00:22,030
+Why not just compare before and after?
+
+8
+00:00:22,030 --> 00:00:25,658
+Because skin scores wobble a few points between two photos taken
+
+9
+00:00:25,658 --> 00:00:26,509
+a minute apart.
+
+10
+00:00:26,509 --> 00:00:31,611
+Track ten concerns and a product that does nothing still looks like it improved something,
+
+11
+00:00:31,611 --> 00:00:32,575
+most of the time.
+
+12
+00:00:34,541 --> 00:00:37,693
+So you start by saying what the product claims to fix.
+
+13
+00:00:37,693 --> 00:00:41,021
+That's your question, decided before you see any results.
+
+14
+00:00:42,823 --> 00:00:43,398
+Day zero:
+
+15
+00:00:43,398 --> 00:00:45,253
+three photos, a minute apart.
+
+16
+00:00:45,253 --> 00:00:47,491
+Your skin can't change in a minute,
+
+17
+00:00:47,491 --> 00:00:51,071
+so any difference between YouCam's scores is pure noise,
+
+18
+00:00:51,071 --> 00:00:54,077
+for your face, your phone, your bathroom light.
+
+19
+00:00:54,077 --> 00:00:57,146
+Some concerns stay steady to a couple of points;
+
+20
+00:00:57,146 --> 00:01:00,343
+others wobble more, so their verdicts take longer.
+
+21
+00:01:02,143 --> 00:01:03,962
+Every few days you check in.
+
+22
+00:01:03,962 --> 00:01:07,016
+One photo is noisy, so small changes stay grey.
+
+23
+00:01:07,016 --> 00:01:10,524
+Until the last check-in you only see the trend so far:
+
+24
+00:01:10,524 --> 00:01:14,553
+no verdict, because peeking every few days would let luck win.
+
+25
+00:01:16,510 --> 00:01:20,528
+At the final check-in, every concern gets a verdict with a range.
+
+26
+00:01:20,528 --> 00:01:22,630
+'No real change' is a real answer:
+
+27
+00:01:22,630 --> 00:01:25,474
+the product isn't doing anything you'd notice.
+
+28
+00:01:25,474 --> 00:01:28,813
+This demo trial was simulated with known true effects,
+
+29
+00:01:28,813 --> 00:01:31,100
+and you can check Proof against them.
+
+30
+00:01:33,068 --> 00:01:36,775
+I tested the method on two thousand simulated trials.
+
+31
+00:01:36,775 --> 00:01:38,873
+When the product does nothing,
+
+32
+00:01:38,873 --> 00:01:43,209
+a before-and-after selfie finds an improvement in 66% of them.
+
+33
+00:01:43,209 --> 00:01:43,629
+Proof:
+
+34
+00:01:43,629 --> 00:01:44,258
+under 5%.
+
+35
+00:01:44,258 --> 00:01:45,307
+Under the hood:
+
+36
+00:01:45,307 --> 00:01:46,286
+YouCam's file,
+
+37
+00:01:46,286 --> 00:01:51,042
+task and polling APIs behind a small Node server that keeps the key,
+
+38
+00:01:51,042 --> 00:01:54,888
+caps the units and deletes every task after reading it.
+
+39
+00:01:56,842 --> 00:01:59,451
+At the end you get a card you can share,
+
+40
+00:01:59,451 --> 00:02:01,342
+a review or a refund request,
+
+41
+00:02:01,342 --> 00:02:05,320
+with a signature on every scan so nobody can quietly edit the
+
+42
+00:02:05,320 --> 00:02:05,842
+numbers.
+
+43
+00:02:07,802 --> 00:02:08,212
+Proof.
+
+44
+00:02:08,212 --> 00:02:11,081
+Stop guessing whether your skincare works.
+
+45
+00:02:11,081 --> 00:02:11,832
+Link below.
+

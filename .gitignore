@@ -4,3 +4,5 @@ node_modules/
 *.log
 .DS_Store
 noise-study/
+demo/*.mp4
+demo/clips/
