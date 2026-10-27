@@ -26,7 +26,7 @@
  "mode": "mock",
  "calibration": [
   {
-   "id": "Tmvqen3t92MOCK9uo588s5",
+   "id": "Tmvqfj2xf2MOCK587fzxjs",
    "at": "2026-09-28T08:32:00.000Z",
    "day": 0,
    "scores": {
@@ -68,7 +68,7 @@
    "unitsIfLive": 14
   },
   {
-   "id": "Tmvqen3tj4MOCKfs5h0smc",
+   "id": "Tmvqfj2xh4MOCKxu08d8bq",
    "at": "2026-09-28T08:50:00.000Z",
    "day": 0,
    "scores": {
@@ -110,7 +110,7 @@
    "unitsIfLive": 14
   },
   {
-   "id": "Tmvqen3tp6MOCK68dtrzxo",
+   "id": "Tmvqfj2xj6MOCKq801kma6",
    "at": "2026-09-28T08:38:00.000Z",
    "day": 0,
    "scores": {
@@ -154,7 +154,7 @@
  ],
  "checkins": [
   {
-   "id": "Tmvqen3tq8MOCKci8rgwfk",
+   "id": "Tmvqfj2xk8MOCKd9wx214t",
    "at": "2026-10-01T08:42:00.000Z",
    "day": 3,
    "scores": {
@@ -198,7 +198,7 @@
    "warnings": []
   },
   {
-   "id": "Tmvqen3tsaMOCK6e76hn56",
+   "id": "Tmvqfj2xlaMOCKdqlhanek",
    "at": "2026-10-04T09:05:00.000Z",
    "day": 6,
    "scores": {
@@ -242,7 +242,7 @@
    "warnings": []
   },
   {
-   "id": "Tmvqen3tscMOCKcmx0bhxy",
+   "id": "Tmvqfj2xlcMOCKm2jx4rrs",
    "at": "2026-10-07T08:52:00.000Z",
    "day": 9,
    "scores": {
@@ -286,7 +286,7 @@
    "warnings": []
   },
   {
-   "id": "Tmvqen3tteMOCKgtkk969n",
+   "id": "Tmvqfj2xmeMOCKn0jsbnkt",
    "at": "2026-10-10T08:55:00.000Z",
    "day": 12,
    "scores": {
@@ -330,7 +330,7 @@
    "warnings": []
   },
   {
-   "id": "Tmvqen3tugMOCK686t5n9e",
+   "id": "Tmvqfj2xmgMOCK8ed3qcuv",
    "at": "2026-10-13T09:07:00.000Z",
    "day": 15,
    "scores": {
@@ -376,7 +376,7 @@
    ]
   },
   {
-   "id": "Tmvqen3tviMOCKv5s3lfym",
+   "id": "Tmvqfj2xniMOCK6yxxxunk",
    "at": "2026-10-16T08:47:00.000Z",
    "day": 18,
    "scores": {
@@ -420,7 +420,7 @@
    "warnings": []
   },
   {
-   "id": "Tmvqen3twkMOCKfpr5z0ev",
+   "id": "Tmvqfj2xokMOCK2en01znv",
    "at": "2026-10-19T08:47:00.000Z",
    "day": 21,
    "scores": {
@@ -464,7 +464,7 @@
    "warnings": []
   },
   {
-   "id": "Tmvqen3twmMOCK7q3hsce9",
+   "id": "Tmvqfj2xomMOCKcttm7bse",
    "at": "2026-10-22T08:43:00.000Z",
    "day": 24,
    "scores": {
@@ -508,7 +508,7 @@
    "warnings": []
   },
   {
-   "id": "Tmvqen3txoMOCKsobtivv7",
+   "id": "Tmvqfj2xooMOCKb0qaahv4",
    "at": "2026-10-25T08:43:00.000Z",
    "day": 27,
    "scores": {
@@ -552,6 +552,18 @@
    "warnings": []
   }
  ],
+ "noisePrior": {
+  "acne": 2.5,
+  "redness": 2,
+  "pore": 2,
+  "texture": 2.5,
+  "wrinkle": 3.5,
+  "moisture": 3,
+  "oiliness": 3,
+  "radiance": 2.5,
+  "age_spot": 2.5,
+  "dark_circle_v2": 3
+ },
  "truth": {
   "acne": 0,
   "redness": 10,

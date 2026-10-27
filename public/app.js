@@ -37,7 +37,8 @@ async function getDemo() {
 }
 
 function reportFor(trial) {
-  return analyzeTrial(trial, { concerns: trial.concerns, noisePrior: noisePrior(trial.concerns) });
+  // A trial keeps the noise priors it started with, so a later prior update can't move its verdicts.
+  return analyzeTrial(trial, { concerns: trial.concerns, noisePrior: trial.noisePrior || noisePrior(trial.concerns) });
 }
 
 async function analyzeShot(shot, trial, day) {
@@ -300,6 +301,7 @@ function viewSetup() {
       dayOffset: 0,
       mode,
       access: mode === 'live' ? access : '',
+      noisePrior: noisePrior(config.concerns),
       calibration: [],
       checkins: [],
     };
@@ -354,7 +356,7 @@ function viewCalibrate() {
 }
 
 function viewCalibrationResult(t) {
-  const prior = noisePrior(t.concerns);
+  const prior = t.noisePrior || noisePrior(t.concerns);
   const items = t.concerns
     .map((c) => {
       const noise = estimateNoise(t.calibration.map((s) => s.scores[c]).filter(Number.isFinite), { priorSigma: prior[c] });

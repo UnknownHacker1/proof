@@ -95,12 +95,14 @@ async function build(seed) {
     mode: 'mock',
     calibration,
     checkins,
+    // Frozen with the trial, so updating the live priors later can't change the demo's story.
+    noisePrior: noisePrior(),
     truth: Object.fromEntries(DEFAULT_CONCERNS.map((c) => [c, TRUTH[c] ? TRUTH[c].delta : 0])),
   };
 }
 
 function story(trial) {
-  const r = analyzeTrial(trial, { concerns: DEFAULT_CONCERNS, noisePrior: noisePrior() });
+  const r = analyzeTrial(trial, { concerns: DEFAULT_CONCERNS, noisePrior: trial.noisePrior });
   const v = Object.fromEntries(r.rows.map((x) => [x.concern, x.verdict]));
   const red = r.rows.find((x) => x.concern === 'redness');
   const clean =
