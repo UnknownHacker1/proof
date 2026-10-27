@@ -1,0 +1,20 @@
+# One-click Render blueprint: New > Blueprint > pick this repo.
+services:
+  - type: web
+    name: proof-skin-trials
+    runtime: node
+    plan: free
+    buildCommand: echo "no build step"
+    startCommand: node server/index.js
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: YOUCAM_API_KEY
+        sync: false
+      - key: RECEIPT_SECRET
+        generateValue: true
+      - key: DAILY_UNIT_BUDGET
+        value: "350"
+      - key: PER_IP_DAILY_SCANS
+        value: "15"
