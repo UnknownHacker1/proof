@@ -39,7 +39,7 @@ async function getDemo() {
 // Before the final check-in there are no verdicts, so charts draw every row in the neutral
 // "not decided yet" colour.
 function chartRows(rep) {
-  return rep.complete ? rep.rows : rep.rows.map((r) => ({ ...r, verdict: VERDICTS.tooEarly }));
+  return rep.complete ? rep.rows : rep.rows.map((r) => ({ ...r, verdict: VERDICTS.tooEarly, provenDay: null }));
 }
 
 function reportFor(trial) {
@@ -504,7 +504,7 @@ async function viewReport(id) {
       <header><h3>${esc(label(r.concern))}</h3><span class="tag tag-${v.tone}">${esc(v.headline)}</span></header>
       <p>${esc(v.body)}</p>
       ${r.fit ? `<details${r.target && i === 0 ? ' open' : ''}><summary>Trend and numbers</summary>
-        ${seriesChart(rep.complete ? r : { ...r, verdict: VERDICTS.tooEarly }, { width: fit(560, r.target ? 76 : 40), height: 190, horizon: trial.horizonDays })}
+        ${seriesChart(rep.complete ? r : { ...r, verdict: VERDICTS.tooEarly, provenDay: null }, { width: fit(560, r.target ? 76 : 40), height: 190, horizon: trial.horizonDays })}
         <dl class="nums">
           <div><dt>Change so far</dt><dd>${sign(r.delta)} pts</dd></div>
           <div><dt>Range (${Math.round(r.ciLevel * 100)}%)</dt><dd>${sign(r.ci[0])} to ${sign(r.ci[1])}</dd></div>

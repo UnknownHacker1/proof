@@ -22,9 +22,11 @@ export function forestPlot(rows, { mcid = 5, width = 640, truth = null, compact 
   const x = (v) => labelW + ((v + lim) / (2 * lim)) * plotW;
   const parts = [];
   parts.push(`<rect class="fp-band" x="${x(-mcid)}" y="${top - 8}" width="${x(mcid) - x(-mcid)}" height="${rows.length * rowH + 8}" rx="6"/>`);
+  // Narrow screens: label every 10 points once the axis gets wide, so labels stay legible.
+  const labelStep = plotW / ((2 * lim) / 5) < 34 ? 10 : 5;
   for (let v = -lim; v <= lim; v += 5) {
     parts.push(`<line class="fp-grid${v === 0 ? ' fp-zero' : ''}" x1="${x(v)}" x2="${x(v)}" y1="${top - 8}" y2="${top + rows.length * rowH}"/>`);
-    parts.push(`<text class="fp-tick" x="${x(v)}" y="${height - 10}" text-anchor="middle">${v > 0 ? '+' + v : v === 0 ? '0' : '−' + -v}</text>`);
+    if (v % labelStep === 0) parts.push(`<text class="fp-tick" x="${x(v)}" y="${height - 10}" text-anchor="middle">${v > 0 ? '+' + v : v === 0 ? '0' : '−' + -v}</text>`);
   }
   parts.push(`<text class="fp-axis" x="${x(-lim)}" y="14">worse</text><text class="fp-axis" x="${x(lim)}" y="14" text-anchor="end">better</text>`);
   rows.forEach((r, i) => {
@@ -37,7 +39,7 @@ export function forestPlot(rows, { mcid = 5, width = 640, truth = null, compact 
       const [lo, hi] = r.ci;
       parts.push(`<line class="fp-ci" x1="${x(Math.max(-lim, lo))}" x2="${x(Math.min(lim, hi))}" y1="${cy}" y2="${cy}"/>`);
       parts.push(`<line class="fp-cap" x1="${x(lo)}" x2="${x(lo)}" y1="${cy - 6}" y2="${cy + 6}"/><line class="fp-cap" x1="${x(hi)}" x2="${x(hi)}" y1="${cy - 6}" y2="${cy + 6}"/>`);
-      parts.push(`<circle class="fp-dot" cx="${x(r.delta)}" cy="${cy}" r="${r.target ? 7 : 5.5}"><title>${esc(label(r.concern))}: ${r1(r.delta)} points (90% range ${r1(lo)} to ${r1(hi)})</title></circle>`);
+      parts.push(`<circle class="fp-dot" cx="${x(r.delta)}" cy="${cy}" r="${r.target ? 7 : 5.5}"><title>${esc(label(r.concern))}: ${r1(r.delta)} points (range ${r1(lo)} to ${r1(hi)})</title></circle>`);
       if (valueW) parts.push(`<text class="fp-value" x="${width}" y="${cy + 5}" text-anchor="end">${r.delta >= 0 ? '+' : '−'}${Math.abs(r1(r.delta)).toFixed(1)}</text>`);
     } else {
       parts.push(`<text class="fp-pending" x="${x(0)}" y="${cy + 5}" text-anchor="middle">waiting for check-ins</text>`);
@@ -48,7 +50,7 @@ export function forestPlot(rows, { mcid = 5, width = 640, truth = null, compact 
     }
     parts.push('</g>');
   });
-  return `<svg class="forest" viewBox="0 0 ${width} ${height}" role="img" aria-label="Change per concern with 90 percent ranges" preserveAspectRatio="xMinYMin meet">${parts.join('')}</svg>`;
+  return `<svg class="forest" viewBox="0 0 ${width} ${height}" role="img" aria-label="Change per concern with ranges" preserveAspectRatio="xMinYMin meet">${parts.join('')}</svg>`;
 }
 
 // One concern over time: each check-in, the fitted trend, and the day-0 baseline with its
@@ -82,7 +84,7 @@ export function seriesChart(row, { width = 560, height = 200, horizon = 28 } = {
     const faint = p.weight < 0.75;
     parts.push(`<circle class="sc-pt${faint ? ' sc-faint' : ''}" cx="${X(p.day)}" cy="${Y(p.score)}" r="${p.reps > 1 ? 5.5 : 4}"><title>Day ${p.day}: ${r1(p.score)}${p.reps > 1 ? ` (average of ${p.reps} calibration photos)` : ''}${faint ? ', counted less' : ''}</title></circle>`);
   }
-  if (row.provenDay) parts.push(`<line class="sc-proven" x1="${X(row.provenDay)}" x2="${X(row.provenDay)}" y1="${pad.t}" y2="${height - pad.b}"/><text class="sc-note" x="${X(row.provenDay) + 4}" y="${pad.t + 10}">proven</text>`);
+  if (row.provenDay) parts.push(`<line class="sc-proven" x1="${X(row.provenDay)}" x2="${X(row.provenDay)}" y1="${pad.t}" y2="${height - pad.b}"/><text class="sc-note" x="${X(row.provenDay) + 4}" y="${pad.t + 10}">steady</text>`);
   return `<svg class="series" viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(label(row.concern))} score by day">${parts.join('')}</svg>`;
 }
 

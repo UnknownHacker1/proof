@@ -41,6 +41,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 html {
   -webkit-text-size-adjust: 100%;
 }
@@ -161,11 +165,15 @@ code {
   font-size: 1.55rem;
   text-decoration: none;
   margin-right: auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
 }
 
 .top nav {
   display: flex;
   gap: 0.4rem;
+  margin-left: -0.3rem;
   font-size: 0.92rem;
 }
 
@@ -701,7 +709,7 @@ code {
 
 .fp-tick,
 .fp-axis {
-  font-size: 11px;
+  font-size: 12.5px;
   fill: var(--soft);
 }
 
@@ -824,6 +832,7 @@ code {
   display: inline-flex;
   gap: 0.5rem;
   align-items: center;
+  min-height: 44px;
   font-size: 0.92rem;
   font-weight: 500;
   margin-top: 0.6rem;
