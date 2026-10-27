@@ -100,6 +100,29 @@ test('live mode: key stays server-side, units are budgeted, tasks are deleted', 
   }
 });
 
+test('live mode: sample trials stay simulated, an access code gates live scans', async () => {
+  const subject = createSubject({ seed: 6 });
+  const upstream = createMockYouCam({ apiKey: 'live-key', subjectFor: () => ({ subject }), runningPolls: 0 });
+  const s = await start({ YOUCAM_API_KEY: 'live-key', LIVE_ACCESS_CODE: 'judge-2026' }, { fetchImpl: upstream });
+  try {
+    const cfg = await (await fetch(s.base + '/api/config')).json();
+    assert.equal(cfg.liveGated, true);
+    assert.equal(JSON.stringify(cfg).includes('judge-2026'), false);
+    const sample = await (await post(s.base, '/api/analyze', fakeJpeg(960, 1280), { 'x-proof-mode': 'mock' })).json();
+    assert.equal(sample.mode, 'mock');
+    assert.equal(sample.unitsCharged, 0);
+    assert.equal(upstream.log.length, 0, 'sample trial never touches YouCam');
+    const noCode = await post(s.base, '/api/analyze', fakeJpeg(960, 1280), { 'x-proof-mode': 'live', 'x-proof-access': 'guess' });
+    assert.equal(noCode.status, 403);
+    assert.equal((await noCode.json()).code, 'access_code');
+    const ok = await (await post(s.base, '/api/analyze', fakeJpeg(960, 1280), { 'x-proof-mode': 'live', 'x-proof-access': 'judge-2026' })).json();
+    assert.equal(ok.mode, 'live');
+    assert.equal(ok.unitsCharged, 14);
+  } finally {
+    await s.close();
+  }
+});
+
 test('live mode: a rejected key is reported without leaking details', async () => {
   const upstream = createMockYouCam({ apiKey: 'other' });
   const s = await start({ YOUCAM_API_KEY: 'wrong' }, { fetchImpl: upstream });

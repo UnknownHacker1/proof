@@ -36,6 +36,8 @@ export function readConfig(env = process.env) {
     deleteAfter: env.YOUCAM_DELETE_AFTER !== '0',
     dailyUnitBudget: Number(env.DAILY_UNIT_BUDGET || 350),
     perIpDailyScans: Number(env.PER_IP_DAILY_SCANS || 15),
+    // Optional: a public deploy stays in sample mode unless a trial carries this code.
+    liveAccessCode: (env.LIVE_ACCESS_CODE || '').trim(),
     receiptSecret: env.RECEIPT_SECRET || randomBytes(32).toString('hex'),
     receiptSecretIsEphemeral: !env.RECEIPT_SECRET,
     port: Number(env.PORT || 3000),

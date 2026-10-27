@@ -9,6 +9,7 @@ import { imageInfo } from './image-info.js';
 import { signReceipt, verifyReceipt, trialCode } from './receipts.js';
 import { createBudget } from './budget.js';
 import { ROOT } from './config.js';
+import { timingSafeEqual, createHash } from 'node:crypto';
 import { createSubject } from '../public/lib/simulate.js';
 
 const PUBLIC = join(ROOT, 'public');
@@ -63,6 +64,11 @@ function clientIp(req) {
 // redness and texture so a mock trial ends with something worth reading.
 const MOCK_EFFECTS = { redness: { delta: 9, onset: 3, ramp: 12 }, texture: { delta: 6, onset: 6, ramp: 14 } };
 
+function sameSecret(a, b) {
+  const h = (s) => createHash('sha256').update(String(s)).digest();
+  return timingSafeEqual(h(a), h(b));
+}
+
 export function createApp(cfg, { fetchImpl = globalThis.fetch, log = console } = {}) {
   const budget = createBudget({ dailyUnits: cfg.dailyUnitBudget, perIpScans: cfg.perIpDailyScans });
   const subjects = new Map();
@@ -106,7 +112,13 @@ export function createApp(cfg, { fetchImpl = globalThis.fetch, log = console } =
       return send(res, 422, { ok: false, code: 'error_below_min_image_size', message: `Photo is ${info.width}x${info.height}; YouCam needs at least ${minSide}px on the short side.`, hint: ENGINE_HINTS.error_below_min_image_size, unitsCharged: 0 });
     }
     const ip = clientIp(req);
-    if (cfg.mode === 'live') {
+    // Each trial is either live or sample for its whole life (mixing would break the stats).
+    // A sample trial on a live server stays simulated; a gated server needs the access code.
+    const mode = live && req.headers['x-proof-mode'] !== 'mock' ? 'live' : 'mock';
+    if (mode === 'live' && cfg.liveAccessCode && !sameSecret(req.headers['x-proof-access'] || '', cfg.liveAccessCode)) {
+      return send(res, 403, { ok: false, code: 'access_code', message: 'That live access code is not right.', hint: 'Check the code on the submission page, or start a new trial in Sample mode (free, no code).' });
+    }
+    if (mode === 'live') {
       const ok = budget.check(ip, cfg.unitsPerScan);
       if (!ok.ok) return send(res, 429, { ok: false, code: 'budget_exhausted', reason: ok.reason, message: ok.message, hint: 'Switch to sample mode to keep exploring without using units.' });
     }
@@ -114,7 +126,7 @@ export function createApp(cfg, { fetchImpl = globalThis.fetch, log = console } =
     const day = Math.max(0, Math.min(365, Number(req.headers['x-proof-day']) || 0));
     const wantedMasks = String(req.headers['x-proof-masks'] || '').split(',').map((s) => s.trim()).filter((c) => cfg.concerns.includes(c));
 
-    let client = live;
+    let client = mode === 'live' ? live : null;
     if (!client) {
       const subject = subjectFor(req.headers['x-proof-subject']);
       const mockFetch = createMockYouCam({ apiKey: 'mock', subjectFor: () => ({ subject, day, luma: Number.isFinite(luma) ? luma : null }) });
@@ -126,17 +138,17 @@ export function createApp(cfg, { fetchImpl = globalThis.fetch, log = console } =
       const result = await client.analyzeSkin(bytes, { contentType: info.type, fileName: info.type === 'image/png' ? 'selfie.png' : 'selfie.jpg', concerns: cfg.dstActions, overlay: true });
       const norm = normalizeSkinOutput(result.output);
       let masks = norm.masks;
-      if (cfg.mode === 'live') {
+      if (mode === 'live') {
         budget.charge(ip, result.unitsCharged);
         if (cfg.deleteAfter) {
           masks = await inlineMasks(norm.masks, wantedMasks);
           client.deleteTask(result.taskId).catch((err) => log.warn?.('task delete failed', err.message));
         }
       }
-      const payload = { v: 1, mode: cfg.mode, task: result.taskId, at: new Date().toISOString(), scores: norm.scores, quality: result.quality };
+      const payload = { v: 1, mode, task: result.taskId, at: new Date().toISOString(), scores: norm.scores, quality: result.quality };
       return send(res, 200, {
         ok: true,
-        mode: cfg.mode,
+        mode,
         taskId: result.taskId,
         scores: norm.scores,
         ui: norm.ui,
@@ -144,7 +156,7 @@ export function createApp(cfg, { fetchImpl = globalThis.fetch, log = console } =
         masks,
         all: norm.all,
         skinAge: norm.skinAge,
-        unitsCharged: cfg.mode === 'live' ? result.unitsCharged : 0,
+        unitsCharged: mode === 'live' ? result.unitsCharged : 0,
         unitsIfLive: result.unitsCharged,
         polls: result.polls,
         timings: result.timings,
@@ -200,6 +212,7 @@ export function createApp(cfg, { fetchImpl = globalThis.fetch, log = console } =
           unitsPerScan: cfg.unitsPerScan,
           minShortSide: MIN_SHORT_SIDE[cfg.quality],
           budget: cfg.mode === 'live' ? budget.status() : null,
+          liveGated: cfg.mode === 'live' && !!cfg.liveAccessCode,
           receiptsEphemeral: cfg.receiptSecretIsEphemeral,
         });
       }

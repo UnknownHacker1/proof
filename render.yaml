@@ -14,7 +14,9 @@ services:
         sync: false
       - key: RECEIPT_SECRET
         generateValue: true
+      - key: LIVE_ACCESS_CODE
+        sync: false
       - key: DAILY_UNIT_BUDGET
-        value: "350"
+        value: "112"
       - key: PER_IP_DAILY_SCANS
-        value: "15"
+        value: "8"

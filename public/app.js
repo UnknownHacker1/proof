@@ -50,6 +50,8 @@ async function analyzeShot(shot, trial, day) {
       'x-proof-day': String(day),
       'x-proof-luma': String(Math.round(shot.metrics.luma)),
       'x-proof-masks': trial.targets.join(','),
+      'x-proof-mode': trial.mode || 'mock',
+      'x-proof-access': trial.access || '',
     },
   });
   const json = await res.json().catch(() => ({ ok: false, message: 'The server sent an unreadable reply.' }));
@@ -88,8 +90,14 @@ function scanFrom(result, shot, day, thumb) {
 
 // ---------- shell ----------
 
+// Live only when the server has a key and this trial was started as a live one.
+function liveFor(t) {
+  if (t) return t.mode === 'live' && config.mode === 'live';
+  return config.mode === 'live' && !config.liveGated;
+}
+
 function modeBadge() {
-  if (config.mode === 'live') return `<span class="mode mode-live" title="Scores come from the real YouCam Skin AI API">Live YouCam</span>`;
+  if (liveFor(store.activeTrial())) return `<span class="mode mode-live" title="Scores come from the real YouCam Skin AI API">Live YouCam</span>`;
   return `<span class="mode mode-mock" title="Scores come from a simulated YouCam API that replies in the documented format. No units are used.">Sample mode</span>`;
 }
 
@@ -188,7 +196,7 @@ function viewTrialHome(t) {
       <h1 class="day">Day ${Math.min(day, t.horizonDays)} <span>of ${t.horizonDays}</span></h1>
       <div class="progress" role="progressbar" aria-valuenow="${Math.round(pct)}" aria-valuemin="0" aria-valuemax="100"><span class="bar" style="width:${pct}%"></span>${ticks.join('')}</div>
       <div class="actions">${action}</div>
-      ${config.mode === 'mock' && calibrated && !done ? `<button class="btn btn-ghost" id="skip" type="button">Skip ahead ${t.cadenceDays} days</button><p class="fine">Sample mode only: lets you run a whole trial in a few minutes.</p>` : ''}
+      ${!liveFor(t) && calibrated && !done ? `<button class="btn btn-ghost" id="skip" type="button">Skip ahead ${t.cadenceDays} days</button><p class="fine">Sample mode only: lets you run a whole trial in a few minutes.</p>` : ''}
     </section>
     ${rep ? `<section class="panel"><h2>${esc(trialHeadline(rep).headline)}</h2><p class="fine">${esc(trialHeadline(rep).sub)}</p>${forestPlot(rep.rows, { mcid: rep.mcid, width: fit(560, 82), compact: true })}<a class="link" href="#/report/${t.id}">Full report</a></section>` : ''}
     <section class="quiet-actions"><button class="btn btn-ghost" id="end" type="button">End this trial</button></section>`);
@@ -226,6 +234,14 @@ function viewSetup() {
         <div class="notice">Change one product at a time. If you start a new cleanser in the same month, Proof can't tell which one did it.</div>
         <p class="form-error" hidden></p>
         <button class="btn btn-primary" type="submit">Start calibration</button>
+        ${config.mode === 'live' ? `<fieldset class="field" id="scan-mode">
+          <legend>Scans</legend>
+          <div class="chips">
+            <label class="chip check"><input type="radio" name="mode" value="live" ${config.liveGated ? '' : 'checked'}><span>Live YouCam</span></label>
+            <label class="chip check"><input type="radio" name="mode" value="mock" ${config.liveGated ? 'checked' : ''}><span>Sample (free)</span></label>
+          </div>
+          ${config.liveGated ? `<label class="field access" hidden><span>Live access code</span><input name="access" autocomplete="off" maxlength="64"></label><p class="fine">Live scans on this demo need the code from the submission page. Sample trials use a simulated YouCam and cost nothing.</p>` : ''}
+        </fieldset>` : ''}
         ${config.mode === 'live' ? `<p class="fine">Each photo is one YouCam analysis (${config.unitsPerScan} units). A full 28-day trial at this pace is about ${3 + Math.floor(28 / 3)} photos.</p>` : ''}
       </form>
     </section>`);
@@ -240,6 +256,11 @@ function viewSetup() {
     }),
   );
   form.addEventListener('change', (e) => {
+    if (e.target.name === 'mode') {
+      const box = form.querySelector('.access');
+      if (box) box.hidden = e.target.value !== 'live';
+      return;
+    }
     if (e.target.name !== 'target') return;
     const on = [...form.querySelectorAll('input[name=target]:checked')];
     if (on.length > 3) e.target.checked = false;
@@ -260,6 +281,13 @@ function viewSetup() {
       err.textContent = 'Pick at least one thing it claims to fix.';
       return;
     }
+    const mode = config.mode === 'live' ? String(fd.get('mode') || 'mock') : 'mock';
+    const access = String(fd.get('access') || '').trim();
+    if (mode === 'live' && config.liveGated && !access) {
+      err.hidden = false;
+      err.textContent = 'Enter the live access code, or pick Sample.';
+      return;
+    }
     const trial = {
       id: store.uid(),
       product,
@@ -270,7 +298,8 @@ function viewSetup() {
       horizonDays: Number(fd.get('horizon')),
       startedAt: new Date().toISOString(),
       dayOffset: 0,
-      mode: config.mode,
+      mode,
+      access: mode === 'live' ? access : '',
       calibration: [],
       checkins: [],
     };
