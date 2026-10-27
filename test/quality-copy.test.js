@@ -60,30 +60,41 @@ test('check-ins in different light count for less', () => {
 const row = (over) => ({ concern: 'redness', verdict: VERDICTS.improved, delta: 8.44, deltaPct: 13.2, ci: [3.1, 13.7], onset: { onsetDay: 9 }, ...over });
 
 test('verdict sentences say what happened, with numbers', () => {
-  const good = verdictText(row());
-  assert.equal(good.headline, 'Working');
-  assert.match(good.body, /Redness improved by 8.4 points \(\+13%\)/);
-  assert.match(good.body, /\+3.1/);
+  const done = { complete: true };
+  const good = verdictText(row(), done);
+  assert.equal(good.headline, 'Improved since you started');
+  assert.ok(good.body.includes("Redness is up 8.4 points (+13%)"));
+  assert.ok(good.body.includes("+3.1"));
   assert.match(good.body, /day 9/);
-  const flat = verdictText(row({ concern: 'pore', verdict: VERDICTS.noChange, delta: 0.4, ci: [-2.1, 2.9] }));
+  const flat = verdictText(row({ concern: 'pore', verdict: VERDICTS.noChange, delta: 0.4, ci: [-2.1, 2.9] }), done);
   assert.equal(flat.headline, 'No real change');
-  assert.match(flat.body, /−2.1 and \+2.9/);
-  const early = verdictText(row({ verdict: VERDICTS.tooEarly, reason: 'uncertain', needed: 2, delta: 3, ci: [-1, 7] }));
-  assert.match(early.body, /About 2 more check-ins/);
-  const done = verdictText(row({ verdict: VERDICTS.tooEarly, reason: 'uncertain', needed: null, delta: 3, ci: [-1, 7] }), { complete: true });
-  assert.equal(done.headline, 'Inconclusive');
+  assert.ok(flat.body.includes("−2.1 and +2.9"));
+  const unclear = verdictText(row({ verdict: VERDICTS.tooEarly, reason: 'uncertain', delta: 3, ci: [-1, 7] }), done);
+  assert.equal(unclear.headline, 'Inconclusive');
   const none = verdictText({ concern: 'acne', verdict: VERDICTS.tooEarly, reason: 'not-enough-checkins', needed: 1 });
   assert.match(none.body, /1 more check-in before/);
   assert.equal(tone(VERDICTS.worse), 'bad');
 });
 
+test('before the final check-in there is a trend, never a verdict', () => {
+  const mid = verdictText(row(), { complete: false, finalDay: 27 });
+  assert.equal(mid.headline, 'Trend so far');
+  assert.equal(mid.tone, 'wait');
+  assert.match(mid.body, /day 27/);
+  assert.doesNotMatch(mid.body, /Improved/);
+  const down = verdictText(row({ verdict: VERDICTS.worse, delta: -7, ci: [-11, -3] }), { complete: false });
+  assert.match(down.body, /trending down/);
+  const rep = { targets: [row({ fit: {} })], rows: [row({ fit: {} })], complete: false, finalDay: 27 };
+  assert.equal(trialHeadline(rep).headline, 'Trend so far');
+});
+
 test('trial headline reflects the claimed concerns', () => {
   const rep = (targets, others = [], complete = true) => ({ targets, rows: [...targets, ...others], complete });
-  assert.equal(trialHeadline(rep([row(), row({ concern: 'pore' })])).headline, 'It is working');
-  assert.equal(trialHeadline(rep([row(), row({ concern: 'pore', verdict: VERDICTS.noChange })])).headline, 'Partly working');
-  assert.equal(trialHeadline(rep([row({ verdict: VERDICTS.noChange })])).headline, 'Not doing what it claims');
-  assert.equal(trialHeadline(rep([row()], [row({ concern: 'moisture', verdict: VERDICTS.worse })])).headline, 'Working, with a side effect');
-  assert.equal(trialHeadline(rep([row({ verdict: VERDICTS.tooEarly })], [], false)).headline, 'Too early to call');
+  assert.equal(trialHeadline(rep([row(), row({ concern: 'pore' })])).headline, 'Improved since you started');
+  assert.equal(trialHeadline(rep([row(), row({ concern: 'pore', verdict: VERDICTS.noChange })])).headline, 'Partly improved');
+  assert.equal(trialHeadline(rep([row({ verdict: VERDICTS.noChange })])).headline, 'No real change');
+  assert.equal(trialHeadline(rep([row()], [row({ concern: 'moisture', verdict: VERDICTS.worse })])).headline, 'Improved, with a side effect');
+  assert.equal(trialHeadline(rep([row({ verdict: VERDICTS.tooEarly, fit: null })], [], false)).headline, 'Too early for a trend');
 });
 
 test('suggestions skip what the failed product already contains', async () => {
