@@ -100,6 +100,7 @@ test('verdicts: improvement, no change, worse, too early', () => {
   const by = Object.fromEntries(r.rows.map((x) => [x.concern, x]));
   assert.equal(by.redness.verdict, VERDICTS.improved);
   assert.ok(by.redness.ci[0] > 0);
+  assert.ok(by.redness.provenDay >= 3 && by.redness.provenDay <= 27, 'time to proof is a check-in day');
   assert.equal(by.oiliness.verdict, VERDICTS.worse);
   assert.ok([VERDICTS.noChange, VERDICTS.tooEarly].includes(by.pore.verdict), `pore was ${by.pore.verdict}`);
   assert.ok(r.complete);

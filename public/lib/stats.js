@@ -456,6 +456,9 @@ export function analyzeTrial(trial, { concerns, noisePrior = {}, mcid = DEFAULTS
       r.needed = checkinsNeeded(r.fit, { cadenceDays, mcid, alpha });
       r.reason = 'uncertain';
     }
+    if ([VERDICTS.improved, VERDICTS.smallGain, VERDICTS.worse, VERDICTS.smallLoss].includes(r.verdict)) {
+      r.provenDay = provenDay(r, trial, { alpha, minCheckins, noisePrior });
+    }
   }
 
   const day = Math.max(0, ...(trial.checkins ?? []).map((c) => c.day));
@@ -470,6 +473,28 @@ export function analyzeTrial(trial, { concerns, noisePrior = {}, mcid = DEFAULTS
     targets: rows.filter((r) => r.target),
     others: rows.filter((r) => !r.target),
   };
+}
+
+// "Time to proof": the first check-in day from which the interval excluded zero (in the
+// direction of the final verdict) and kept excluding it at every later check-in.
+function provenDay(row, trial, { alpha, minCheckins, noisePrior }) {
+  const concern = row.concern;
+  const reps = trial.calibration.map((s) => s.scores?.[concern]).filter(Number.isFinite);
+  const checks = trial.checkins
+    .filter((c) => Number.isFinite(c.scores?.[concern]))
+    .map((c) => ({ day: c.day, values: [c.scores[concern]], weight: c.weight ?? 1 }))
+    .sort((a, b) => a.day - b.day);
+  const sign = row.delta >= 0 ? 1 : -1;
+  let first = null;
+  for (let k = minCheckins; k <= checks.length; k++) {
+    const fit = fitTrend([{ day: 0, values: reps }, ...checks.slice(0, k)], row.noise.sigma);
+    const tq = tQuantile(1 - alpha, fit.df);
+    const lowEdge = sign * fit.slope - tq * fit.seSlope;
+    if (lowEdge > 0) {
+      if (first === null) first = checks[k - 1].day;
+    } else first = null;
+  }
+  return first;
 }
 
 // The comparison most people actually make: one photo before, one photo after.
