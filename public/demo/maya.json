@@ -26,7 +26,7 @@
  "mode": "mock",
  "calibration": [
   {
-   "id": "Tmvqfj2xf2MOCK587fzxjs",
+   "id": "Tmvqgic5f2MOCKtgomyf79",
    "at": "2026-09-28T08:32:00.000Z",
    "day": 0,
    "scores": {
@@ -53,8 +53,6 @@
     "age_spot": 92,
     "dark_circle_v2": 83
    },
-   "all": 66.35055,
-   "skinAge": 37,
    "quality": {
     "luma": 138.07022851891816,
     "warmth": 1.159076305311173,
@@ -68,7 +66,7 @@
    "unitsIfLive": 14
   },
   {
-   "id": "Tmvqfj2xh4MOCKxu08d8bq",
+   "id": "Tmvqgic5i4MOCKomovf3k3",
    "at": "2026-09-28T08:50:00.000Z",
    "day": 0,
    "scores": {
@@ -95,8 +93,6 @@
     "age_spot": 91,
     "dark_circle_v2": 85
    },
-   "all": 67.92120999999999,
-   "skinAge": 36,
    "quality": {
     "luma": 140.43313012830913,
     "warmth": 1.1295970074366777,
@@ -110,7 +106,7 @@
    "unitsIfLive": 14
   },
   {
-   "id": "Tmvqfj2xj6MOCKq801kma6",
+   "id": "Tmvqgic5l6MOCKqlouqs5k",
    "at": "2026-09-28T08:38:00.000Z",
    "day": 0,
    "scores": {
@@ -137,8 +133,6 @@
     "age_spot": 88,
     "dark_circle_v2": 84
    },
-   "all": 65.95434999999999,
-   "skinAge": 37,
    "quality": {
     "luma": 139.54689336614683,
     "warmth": 1.1505635954625903,
@@ -154,7 +148,7 @@
  ],
  "checkins": [
   {
-   "id": "Tmvqfj2xk8MOCKd9wx214t",
+   "id": "Tmvqgic5n8MOCKxstvrqq0",
    "at": "2026-10-01T08:42:00.000Z",
    "day": 3,
    "scores": {
@@ -181,8 +175,6 @@
     "age_spot": 90,
     "dark_circle_v2": 86
    },
-   "all": 67.70979000000001,
-   "skinAge": 36,
    "quality": {
     "luma": 138.94366874732077,
     "warmth": 1.1413895810209214,
@@ -198,7 +190,7 @@
    "warnings": []
   },
   {
-   "id": "Tmvqfj2xlaMOCKdqlhanek",
+   "id": "Tmvqgic5paMOCKuuiox5hk",
    "at": "2026-10-04T09:05:00.000Z",
    "day": 6,
    "scores": {
@@ -225,8 +217,6 @@
     "age_spot": 88,
     "dark_circle_v2": 87
    },
-   "all": 66.05868,
-   "skinAge": 37,
    "quality": {
     "luma": 137.98026875406504,
     "warmth": 1.1276316683739422,
@@ -242,7 +232,7 @@
    "warnings": []
   },
   {
-   "id": "Tmvqfj2xlcMOCKm2jx4rrs",
+   "id": "Tmvqgic5rcMOCKr9mxujs9",
    "at": "2026-10-07T08:52:00.000Z",
    "day": 9,
    "scores": {
@@ -269,8 +259,6 @@
     "age_spot": 89,
     "dark_circle_v2": 83
    },
-   "all": 65.95308999999999,
-   "skinAge": 37,
    "quality": {
     "luma": 138.3276097048074,
     "warmth": 1.1504749478027223,
@@ -286,7 +274,7 @@
    "warnings": []
   },
   {
-   "id": "Tmvqfj2xmeMOCKn0jsbnkt",
+   "id": "Tmvqgic5seMOCK6j4yhfty",
    "at": "2026-10-10T08:55:00.000Z",
    "day": 12,
    "scores": {
@@ -313,8 +301,6 @@
     "age_spot": 91,
     "dark_circle_v2": 86
    },
-   "all": 67.28099999999999,
-   "skinAge": 36,
    "quality": {
     "luma": 140.42968598380685,
     "warmth": 1.1472036363091318,
@@ -330,7 +316,7 @@
    "warnings": []
   },
   {
-   "id": "Tmvqfj2xmgMOCK8ed3qcuv",
+   "id": "Tmvqgic5tgMOCKktolv39t",
    "at": "2026-10-13T09:07:00.000Z",
    "day": 15,
    "scores": {
@@ -357,8 +343,6 @@
     "age_spot": 90,
     "dark_circle_v2": 84
    },
-   "all": 65.80166,
-   "skinAge": 37,
    "quality": {
     "luma": 96,
     "warmth": 1.153105139369145,
@@ -376,7 +360,7 @@
    ]
   },
   {
-   "id": "Tmvqfj2xniMOCK6yxxxunk",
+   "id": "Tmvqgic5uiMOCKycybykwv",
    "at": "2026-10-16T08:47:00.000Z",
    "day": 18,
    "scores": {
@@ -403,8 +387,6 @@
     "age_spot": 89,
     "dark_circle_v2": 87
    },
-   "all": 67.72246999999999,
-   "skinAge": 36,
    "quality": {
     "luma": 138.8558481130749,
     "warmth": 1.1208070445712655,
@@ -420,7 +402,7 @@
    "warnings": []
   },
   {
-   "id": "Tmvqfj2xokMOCK2en01znv",
+   "id": "Tmvqgic5xkMOCKqecuou4q",
    "at": "2026-10-19T08:47:00.000Z",
    "day": 21,
    "scores": {
@@ -447,8 +429,6 @@
     "age_spot": 88,
     "dark_circle_v2": 85
    },
-   "all": 67.29326999999999,
-   "skinAge": 36,
    "quality": {
     "luma": 138.9517544414848,
     "warmth": 1.1387465051282197,
@@ -464,7 +444,7 @@
    "warnings": []
   },
   {
-   "id": "Tmvqfj2xomMOCKcttm7bse",
+   "id": "Tmvqgic5ymMOCKn0ulzpbh",
    "at": "2026-10-22T08:43:00.000Z",
    "day": 24,
    "scores": {
@@ -491,8 +471,6 @@
     "age_spot": 91,
     "dark_circle_v2": 86
    },
-   "all": 68.18458,
-   "skinAge": 35,
    "quality": {
     "luma": 141.5063797403127,
     "warmth": 1.1342533809319137,
@@ -508,7 +486,7 @@
    "warnings": []
   },
   {
-   "id": "Tmvqfj2xooMOCKb0qaahv4",
+   "id": "Tmvqgic5zoMOCKnls3yj26",
    "at": "2026-10-25T08:43:00.000Z",
    "day": 27,
    "scores": {
@@ -535,8 +513,6 @@
     "age_spot": 90,
     "dark_circle_v2": 86
    },
-   "all": 67.99319,
-   "skinAge": 36,
    "quality": {
     "luma": 143.30427894555032,
     "warmth": 1.1276150210760534,

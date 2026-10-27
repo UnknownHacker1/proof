@@ -44,7 +44,7 @@ export async function drawVerdictCard(canvas, trial, report, { verified = null, 
   ctx.font = `500 26px ${sans}`;
   ctx.fillStyle = C.soft;
   ctx.textAlign = 'right';
-  ctx.fillText(`${report.day}-day result`, W - M, M + 28);
+  ctx.fillText(report.complete ? `${report.day}-day result` : `Trend at day ${report.day}`, W - M, M + 28);
   ctx.textAlign = 'left';
 
   ctx.font = `500 30px ${sans}`;
@@ -66,11 +66,11 @@ export async function drawVerdictCard(canvas, trial, report, { verified = null, 
   // Mini forest plot: claimed concerns first, then up to three others with a verdict.
   const plotTop = Math.max(y + 90, 560);
   // Everything from the plot down to the caption has to clear the footer rule at H - 190.
-  const room = H - 190 - 30 - plotTop - 70;
-  const maxRows = Math.max(3, Math.min(6, Math.floor(room / 66)));
+  const room = H - 200 - 30 - plotTop - 96;
+  const maxRows = Math.max(3, Math.min(6, Math.floor(room / 76)));
   const rows = [...report.targets, ...report.others.filter((r) => r.fit && r.verdict !== 'too-early')].filter((r) => r.fit).slice(0, maxRows);
-  const rowH = Math.min(86, Math.floor(room / Math.max(1, rows.length)));
-  const labelW = 300;
+  const rowH = Math.min(110, Math.floor(room / Math.max(1, rows.length)));
+  const labelW = 340;
   const px0 = M + labelW;
   const px1 = W - M;
   let lim = 15;
@@ -88,13 +88,14 @@ export async function drawVerdictCard(canvas, trial, report, { verified = null, 
   ctx.stroke();
   rows.forEach((r, i) => {
     const cy = plotTop + i * rowH + rowH / 2 - 14;
-    const col = C[tone(r.verdict)] || C.flat;
+    const col = report.complete ? C[tone(r.verdict)] || C.flat : C.wait;
     ctx.fillStyle = C.ink;
-    ctx.font = `${r.target ? 600 : 400} 32px ${sans}`;
-    ctx.fillText(label(r.concern), M, cy + 4);
-    ctx.font = `400 22px ${sans}`;
+    ctx.font = `${r.target ? 600 : 400} 38px ${sans}`;
+    ctx.fillText(label(r.concern), M, cy + 2);
+    ctx.font = `500 26px ${sans}`;
     ctx.fillStyle = col;
-    ctx.fillText(verdictText(r, { complete: report.complete, mcid: report.mcid }).headline, M, cy + 34);
+    const vt = verdictText(r, { complete: report.complete, mcid: report.mcid }).headline;
+    ctx.fillText(vt.length > 20 ? vt.replace(' since you started', '') : vt, M, cy + 36);
     ctx.strokeStyle = col;
     ctx.lineWidth = 6;
     ctx.lineCap = 'round';
@@ -107,34 +108,43 @@ export async function drawVerdictCard(canvas, trial, report, { verified = null, 
     ctx.arc(X(r.delta), cy, 14, 0, Math.PI * 2);
     ctx.fill();
   });
-  ctx.font = `400 22px ${sans}`;
+  ctx.font = `400 28px ${sans}`;
   ctx.fillStyle = C.soft;
-  const axisY = plotTop + rows.length * rowH + 22;
+  const axisY = plotTop + rows.length * rowH + 26;
   ctx.fillText('worse', px0, axisY);
   ctx.textAlign = 'right';
   ctx.fillText('better', px1, axisY);
   ctx.textAlign = 'left';
-  ctx.fillText(`Change in YouCam raw score, with 90% range. Shaded: under ±${report.mcid} points.`, M, axisY + 44);
+  ctx.font = `400 26px ${sans}`;
+  wrap(ctx, `Change in score since day 0, with its range. Shaded: under ±${report.mcid} points.`, W - 2 * M).forEach((l, i) => ctx.fillText(l, M, axisY + 50 + i * 34));
 
   // Footer
   ctx.strokeStyle = C.rule;
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(M, H - 190);
-  ctx.lineTo(W - M, H - 190);
+  ctx.moveTo(M, H - 200);
+  ctx.lineTo(W - M, H - 200);
   ctx.stroke();
   const photos = trial.calibration.length + trial.checkins.length;
-  ctx.font = `500 26px ${sans}`;
-  ctx.fillStyle = C.ink;
-  ctx.fillText(`${photos} photos measured with YouCam Skin AI`, M, H - 130);
-  ctx.font = `400 24px ${sans}`;
+  const live = trial.mode === 'live' && !trial.demo;
+  ctx.font = `600 30px ${sans}`;
+  ctx.fillStyle = live ? C.ink : C.wait;
+  ctx.fillText(
+    trial.demo ? `Synthetic demo: ${photos} simulated scans` : live ? `${photos} photos measured with YouCam Skin AI` : `Sample mode: ${photos} simulated scans, not YouCam`,
+    M,
+    H - 136,
+  );
+  ctx.fillStyle = C.soft;
+  ctx.font = `400 27px ${sans}`;
   ctx.fillStyle = C.soft;
   const proofLine = trial.demo
-    ? 'Synthetic demo data'
-    : verified != null
+    ? 'Generated with known true effects to test Proof'
+    : !live
+      ? 'Scores came from a simulated API, not a real face'
+      : verified != null
       ? `${verified} of ${photos} scans carry a valid server signature${code ? `, code ${code}` : ''}`
-      : '90% ranges, corrected for testing several concerns at once';
-  ctx.fillText(proofLine, M, H - 90);
-  ctx.fillText('Not medical advice.', M, H - 54);
+      : 'Ranges corrected for testing several concerns at once';
+  ctx.fillText(proofLine, M, H - 92);
+  ctx.fillText('Shows change since day 0, not its cause. Not medical advice.', M, H - 52);
   return canvas;
 }

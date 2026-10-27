@@ -1,6 +1,6 @@
 import { analyzeTrial, estimateNoise, minimumDetectableChange, VERDICTS } from './lib/stats.js';
 import { CONCERNS, PRODUCT_TYPES, noisePrior, label, suggestNext } from './lib/concerns.js';
-import { verdictText, trialHeadline, tone } from './lib/copy.js';
+import { verdictText, trialHeadline, tone, CAUSALITY_NOTE } from './lib/copy.js';
 import { forestPlot, seriesChart, noiseBars } from './lib/charts.js';
 import { mountCapture } from './lib/camera.js';
 import { compareToBaseline } from './lib/quality.js';
@@ -34,6 +34,12 @@ async function loadConfig() {
 async function getDemo() {
   if (!demoTrial) demoTrial = await (await fetch('/demo/maya.json')).json();
   return demoTrial;
+}
+
+// Before the final check-in there are no verdicts, so charts draw every row in the neutral
+// "not decided yet" colour.
+function chartRows(rep) {
+  return rep.complete ? rep.rows : rep.rows.map((r) => ({ ...r, verdict: VERDICTS.tooEarly }));
 }
 
 function reportFor(trial) {
@@ -164,7 +170,7 @@ async function viewHome() {
       <ol>
         <li><strong>Calibrate.</strong> Three selfies on day 0. Your scores wobble a little between photos even though your skin did not change; Proof measures that wobble.</li>
         <li><strong>Check in.</strong> One selfie every few days, same spot, same light. Proof flags photos taken in different light and counts them less.</li>
-        <li><strong>Get a verdict.</strong> For each thing the product claims: working, no real change, getting worse, or too early to tell. Always with the range, never a guess.</li>
+        <li><strong>Get a verdict at the end.</strong> For each thing the product claims: improved since you started, no real change, worse, or inconclusive. Always with the range, never a guess. Before the last check-in you see the trend so far, not a verdict.</li>
       </ol>
     </section>`);
 }
@@ -174,10 +180,10 @@ function viewTrialHome(t) {
   const calibrated = t.calibration.length >= 3;
   const last = store.lastCheckinDay(t);
   const next = store.nextCheckinDay(t);
-  const done = day >= t.horizonDays;
+  const rep = calibrated ? reportFor(t) : null;
+  const done = !!rep?.complete;
   const due = calibrated && day >= next;
   const canCheck = calibrated && day > last && !done;
-  const rep = calibrated ? reportFor(t) : null;
   const pct = Math.min(100, (day / t.horizonDays) * 100);
   const ticks = [];
   for (let d = t.cadenceDays; d <= t.horizonDays; d += t.cadenceDays) {
@@ -195,10 +201,12 @@ function viewTrialHome(t) {
       <h1 class="day">Day ${Math.min(day, t.horizonDays)} <span>of ${t.horizonDays}</span></h1>
       <div class="progress" role="progressbar" aria-valuenow="${Math.round(pct)}" aria-valuemin="0" aria-valuemax="100"><span class="bar" style="width:${pct}%"></span>${ticks.join('')}</div>
       <div class="actions">${action}</div>
-      ${!liveFor(t) && calibrated && !done ? `<button class="btn btn-ghost" id="skip" type="button">Skip ahead ${t.cadenceDays} days</button><p class="fine">Sample mode only: lets you run a whole trial in a few minutes.</p>` : ''}
     </section>
-    ${rep ? `<section class="panel"><h2>${esc(trialHeadline(rep).headline)}</h2><p class="fine">${esc(trialHeadline(rep).sub)}</p>${forestPlot(rep.rows, { mcid: rep.mcid, width: fit(560, 82), compact: true })}<a class="link" href="#/report/${t.id}">Full report</a></section>` : ''}
-    <section class="quiet-actions"><button class="btn btn-ghost" id="end" type="button">End this trial</button></section>`);
+    ${rep ? `<section class="panel"><h2>${esc(trialHeadline(rep).headline)}</h2><p class="fine">${esc(trialHeadline(rep).sub)}</p>${forestPlot(chartRows(rep), { mcid: rep.mcid, width: fit(560, 82), compact: true })}<a class="link" href="#/report/${t.id}">Full report</a></section>` : ''}
+    <section class="quiet-actions">
+      ${!liveFor(t) && calibrated && !done ? `<button class="btn btn-ghost" id="skip" type="button">Sample mode: skip ahead ${t.cadenceDays} days</button><p class="fine">Moves the calendar so a whole sample trial takes minutes. Live trials can't skip.</p>` : ''}
+      <button class="btn btn-ghost" id="end" type="button">End this trial</button>
+    </section>`);
   document.getElementById('skip')?.addEventListener('click', () => {
     store.update(() => (t.dayOffset = (t.dayOffset || 0) + t.cadenceDays));
     route();
@@ -336,7 +344,7 @@ function viewCalibrate() {
         status.innerHTML = errorBox({ hint: shot.quality.issues.find((i) => i.level === 'block').message, unitsCharged: 0 });
         return;
       }
-      const stopBusy = busy(status, ['Uploading the photo', 'YouCam Skin AI is analyzing 10 concerns', 'Reading the scores']);
+      const stopBusy = busy(status, liveFor(t) ? ['Uploading the photo', 'YouCam Skin AI is analyzing 10 concerns', 'Reading the scores'] : ['Sample mode: simulating a YouCam analysis', 'Reading the scores']);
       try {
         const result = await analyzeShot(shot, t, 0);
         stopBusy();
@@ -418,7 +426,7 @@ function viewCheckin() {
       } else send();
 
       async function send() {
-        const stopBusy = busy(status, ['Uploading the photo', 'YouCam Skin AI is analyzing', 'Updating your trend']);
+        const stopBusy = busy(status, liveFor(t) ? ['Uploading the photo', 'YouCam Skin AI is analyzing', 'Updating your trend'] : ['Sample mode: simulating a YouCam analysis', 'Updating your trend']);
         try {
           const result = await analyzeShot(shot, t, day);
           stopBusy();
@@ -450,7 +458,10 @@ function viewCheckinResult(t, scan, result, shot) {
   const rows = [...t.targets, ...t.concerns.filter((c) => !t.targets.includes(c))]
     .map((c) => {
       const d = scan.scores[c] - base[c];
-      return `<tr class="${t.targets.includes(c) ? 'is-target' : ''}"><th scope="row">${esc(label(c))}</th><td>${scan.scores[c].toFixed(1)}</td><td class="${d >= 0 ? 'up' : 'down'}">${sign(d)}</td></tr>`;
+      // One photo against day 0 is mostly noise: only colour a difference well outside it.
+      const sigma = estimateNoise(t.calibration.map((x) => x.scores[c]).filter(Number.isFinite), { priorSigma: (t.noisePrior || noisePrior(t.concerns))[c] ?? 2.5 }).sigma;
+      const cls = Math.abs(d) < 2.5 * sigma ? 'within-noise' : d >= 0 ? 'up' : 'down';
+      return `<tr class="${t.targets.includes(c) ? 'is-target' : ''}"><th scope="row">${esc(label(c))}</th><td>${scan.scores[c].toFixed(1)}</td><td class="${cls}">${sign(d)}</td></tr>`;
     })
     .join('');
   const rep = reportFor(t);
@@ -467,7 +478,7 @@ function viewCheckinResult(t, scan, result, shot) {
         </figure>
         <div>
           <table class="scores"><thead><tr><th>Concern</th><th>Today</th><th>vs day 0</th></tr></thead><tbody>${rows}</tbody></table>
-          <p class="fine">One photo is noisy, so don't read much into a single row. The trend across check-ins is what Proof judges.${result.unitsCharged ? ` This scan used ${result.unitsCharged} YouCam units.` : ''}</p>
+          <p class="fine">One photo is noisy, so don't read much into a single row: grey numbers are within this photo's normal wobble. The trend across check-ins is what Proof judges.${result.unitsCharged ? ` This scan used ${result.unitsCharged} YouCam units.` : ''}</p>
         </div>
       </div>
       <div class="actions"><a class="btn btn-primary" href="#/report/${t.id}">See the trend</a><a class="btn btn-quiet" href="#/">Done</a></div>
@@ -485,42 +496,45 @@ async function viewReport(id) {
   if (trial.calibration.length < 3) return (location.hash = '#/calibrate');
   const rep = reportFor(trial);
   const head = trialHeadline(rep);
-  const opts = { complete: rep.complete, mcid: rep.mcid };
+  const opts = { complete: rep.complete, mcid: rep.mcid, finalDay: rep.finalDay };
+  const shownRows = chartRows(rep);
   const card = (r, i) => {
     const v = verdictText(r, opts);
     return `<article class="verdict v-${v.tone}${r.target ? ' is-target' : ''}">
       <header><h3>${esc(label(r.concern))}</h3><span class="tag tag-${v.tone}">${esc(v.headline)}</span></header>
       <p>${esc(v.body)}</p>
       ${r.fit ? `<details${r.target && i === 0 ? ' open' : ''}><summary>Trend and numbers</summary>
-        ${seriesChart(r, { width: fit(560, r.target ? 76 : 40), height: 190, horizon: trial.horizonDays })}
+        ${seriesChart(rep.complete ? r : { ...r, verdict: VERDICTS.tooEarly }, { width: fit(560, r.target ? 76 : 40), height: 190, horizon: trial.horizonDays })}
         <dl class="nums">
           <div><dt>Change so far</dt><dd>${sign(r.delta)} pts</dd></div>
-          <div><dt>90% range</dt><dd>${sign(r.ci[0])} to ${sign(r.ci[1])}</dd></div>
+          <div><dt>Range (${Math.round(r.ciLevel * 100)}%)</dt><dd>${sign(r.ci[0])} to ${sign(r.ci[1])}</dd></div>
           <div><dt>Photo noise</dt><dd>±${r.noise.sigma.toFixed(1)}</dd></div>
           <div><dt>Day-to-day wobble</dt><dd>${r.fit.tau < 0.05 ? 'none seen' : '±' + r.fit.tau.toFixed(1)}</dd></div>
           <div><dt>p, adjusted</dt><dd>${fmtP(r.delta >= 0 ? r.pImproveAdj : r.pWorseAdj)}</dd></div>
-          ${r.provenDay ? `<div><dt>Clear from</dt><dd>day ${r.provenDay}</dd></div>` : ''}
+          ${rep.complete && r.provenDay ? `<div><dt>Steady since</dt><dd>day ${r.provenDay}</dd></div>` : ''}
         </dl></details>` : ''}
     </article>`;
   };
-  const unresolved = rep.targets.filter((r) => ![VERDICTS.improved].includes(r.verdict) && r.fit);
+  const unresolved = rep.complete ? rep.targets.filter((r) => ![VERDICTS.improved].includes(r.verdict) && r.fit) : [];
+  const sample = !trial.demo && trial.mode !== 'live';
   const photos = [...trial.calibration, ...trial.checkins];
   const units = store.unitsUsed(trial);
   shell(
     `
     <section class="report-head">
       ${trial.demo ? `<p class="demo-flag">Synthetic demo. ${esc(trial.person)} is not a real person: this trial was generated through Proof's real pipeline against the simulated YouCam API, with true effects you can reveal below.</p>` : ''}
+      ${sample ? `<p class="demo-flag">Sample mode. These scores come from a simulated YouCam API, not from your skin. Start a live trial to measure for real.</p>` : ''}
       <p class="eyebrowless">${esc(trial.product)}</p>
       <h1>${esc(head.headline)}</h1>
       <p class="lede">${esc(head.sub)}</p>
-      <p class="meta">Day ${rep.day} of ${trial.horizonDays}${rep.complete ? ', trial complete' : ''}. ${photos.length} photos.${units ? ` ${units} YouCam units.` : ''}</p>
+      <p class="meta">${rep.complete ? `Final check-in on day ${rep.day} of ${trial.horizonDays}` : `Last check-in day ${rep.day}; the verdict comes at the day-${rep.finalDay} check-in`}. ${photos.length} photos.${units ? ` ${units} YouCam units.` : ''}</p>
     </section>
     <section class="forest-wrap" aria-labelledby="fp-title">
       <div class="forest-head">
         <h2 id="fp-title">Change since day 0</h2>
-        <p class="fine">Dot: estimated change in YouCam's raw score. Line: 90% range. Shaded: under ±${rep.mcid} points, too small to notice. <span class="claim-key">Filled marker</span> = the product claims this.</p>
+        <p class="fine">Dot: estimated change in YouCam's raw score. Line: plausible range (90%, widened where needed to correct for testing ten concerns at once). Shaded: under ±${rep.mcid} points, too small to notice. <span class="claim-key">Filled marker</span> = the product claims this.</p>
       </div>
-      <div id="forest">${forestPlot(rep.rows, { mcid: rep.mcid, width: fit(720, 82) })}</div>
+      <div id="forest">${forestPlot(shownRows, { mcid: rep.mcid, width: fit(720, 82) })}</div>
       ${trial.demo ? `<label class="toggle"><input type="checkbox" id="truth"> Show the planted true effects (answer key)</label>` : ''}
     </section>
     <section class="verdicts">
@@ -529,6 +543,7 @@ async function viewReport(id) {
       <h2>Everything else</h2>
       <p class="fine">Not claimed by the product, so these get a stricter bar (false discovery rate control across all of them).</p>
       ${rep.others.map(card).join('')}
+      ${rep.complete ? `<p class="fine causal">${esc(CAUSALITY_NOTE)}</p>` : ''}
     </section>
     ${unresolved.length ? `<section class="next-try"><h2>If it isn't doing the job</h2>${unresolved.map((r) => { const s = suggestNext(r.concern, trial.product); return `<div class="try"><h3>${esc(label(r.concern))}</h3><p>${s.tried.length ? `This product already has ${s.tried.map((x) => esc(x.toLowerCase())).join(' and ')}, so try a different route. ` : ''}Ingredient classes often used for this: ${s.next.map(esc).join(', ')}.</p></div>`; }).join('')}<p class="fine">General cosmetic information, not medical advice. Patch test new products, and start one at a time so your next trial can tell what worked.</p></section>` : ''}
     <section class="log">
@@ -542,13 +557,13 @@ async function viewReport(id) {
       </div>
     </section>
     <section class="share">
-      <a class="btn btn-primary" href="#/card/${trial.demo ? 'demo' : trial.id}">Make the ${rep.day}-day verdict card</a>
+      <a class="btn btn-primary" href="#/card/${trial.demo ? 'demo' : trial.id}">Make the ${rep.complete ? `${rep.day}-day verdict` : 'trend-so-far'} card</a>
       <a class="link" href="#/method">How Proof decides</a>
     </section>`,
     { wide: true },
   );
   document.getElementById('truth')?.addEventListener('change', (e) => {
-    document.getElementById('forest').innerHTML = forestPlot(rep.rows, { mcid: rep.mcid, width: fit(720, 82), truth: e.target.checked ? trial.truth : null });
+    document.getElementById('forest').innerHTML = forestPlot(shownRows, { mcid: rep.mcid, width: fit(720, 82), truth: e.target.checked ? trial.truth : null });
   });
   document.getElementById('verify').addEventListener('click', async () => {
     const out = document.getElementById('verify-out');
@@ -638,32 +653,33 @@ function viewMethod() {
         <li><strong>Bad photos count less.</strong> A check-in in different light than day 0 is down-weighted, and any point far off the trend is automatically discounted (a robust fit).</li>
       </ul>
 
-      <h2>Step 3: a verdict with a range</h2>
-      <p>The change so far comes with a 90% range. Changes under ±5 points are treated as too small to notice. Then:</p>
+      <h2>Step 3: one verdict, at the end</h2>
+      <p>Until the final check-in you see the trend so far, never a verdict. Looking for a verdict at every check-in would give luck many chances: in simulation, a product that does nothing would look like it improved at some point in about 1 trial in 10. Waiting for the end keeps that to 1 in 26.</p>
+      <p>The verdict comes with a range, widened where needed to correct for testing ten concerns at once, so the range and the verdict always agree. Changes under ±5 points are treated as too small to notice. Then:</p>
       <ul class="verdict-key">
-        <li><span class="tag tag-good">Working</span> the whole range is above zero and the change clears 5 points.</li>
+        <li><span class="tag tag-good">Improved since you started</span> the range is above zero and the change clears 5 points.</li>
+        <li><span class="tag tag-good">Small improvement</span> the range is above zero, but the change is under 5 points.</li>
         <li><span class="tag tag-flat">No real change</span> the whole range sits inside ±5. That is a real answer: the product is not doing anything you would see.</li>
-        <li><span class="tag tag-bad">Getting worse</span> the whole range is below zero by more than 5.</li>
-        <li><span class="tag tag-wait">Too early</span> none of the above yet. Proof estimates how many more check-ins it needs.</li>
+        <li><span class="tag tag-bad">Slightly worse</span> or <span class="tag tag-bad">Worse since you started</span> the same rules, downward.</li>
+        <li><span class="tag tag-wait">Inconclusive</span> none of the above: the range is too wide to say.</li>
       </ul>
 
       <h2>Step 4: no fishing for wins</h2>
       <p>Test ten concerns and one will look better by luck. So before the trial starts you say what the product claims to fix. Those claims are the main question (Holm correction across them). Everything else is exploratory and has to clear a stricter bar (Benjamini-Hochberg false discovery rate control).</p>
 
       <h2>Does it work?</h2>
-      <p>The method is checked by simulation (<code>npm run simulate</code>: 2,000 simulated 28-day trials per scenario, plus the test suite).</p>
+      <p>The method is checked by simulation (<code>npm run simulate</code>: 2,000 simulated trials per scenario, plus the test suite).</p>
       <ul>
-        <li>When the product does nothing, Proof calls the claimed concern improved in 3.8% of trials, and calls <em>any</em> of the ten concerns improved in 1.3%.</li>
-        <li>The before/after selfie, with the same 5-point bar, finds a fake improvement in at least one of ten concerns in 66% of those trials.</li>
-        <li>A real 8-point improvement is confirmed by day 27 in 96% of trials, typically clear by day 12. A 5-point one, in 74%.</li>
-        <li>The 90% ranges contain the true change in 92% of trials.</li>
+        <li>When the product does nothing, Proof shows an improvement (Improved or Small improvement) in at least one of ten concerns in 4.7% of trials. A before/after selfie with a 5-point bar finds one in 66%.</li>
+        <li>A real 8-point improvement is caught by the final check-in in 96% of trials. A 5-point one, in 74%.</li>
+        <li>The ranges contain the true change in 92-95% of trials.</li>
       </ul>
-      <p class="fine">These numbers assume the noise levels in the simulation. Calibration replaces them with your own.</p>
+      <p class="fine">These numbers assume the built-in noise levels, which are estimates until measured against the live YouCam API. If real photo noise were twice as large, the false-improvement rate would rise to about 7%. Your own calibration photos pull the noise estimate toward your real level.</p>
 
       <h2>What Proof can't do</h2>
       <ul>
-        <li>It measures what the camera sees. Lighting is the biggest confounder; that is why it checks it.</li>
-        <li>It can't separate the product from anything else that changed that month: season, a new cleanser, stress. Change one thing at a time.</li>
+        <li><strong>It shows what changed, not why.</strong> There is no control group. Season and humidity, stress, other products, and regression to the mean (people often start a product when their skin is at its worst, and it tends to improve anyway) all move scores too. Change one thing at a time.</li>
+        <li><strong>Lighting is the biggest confounder.</strong> Proof checks light against day 0 and counts mismatched photos less, but it can't fully correct a slow drift, like daylight fading through autumn. In simulation, light that dims steadily over the month makes something look worse in about 8% of do-nothing trials.</li>
         <li>It is not a diagnosis. Painful, spreading, or persistent skin problems need a dermatologist.</li>
       </ul>
     </article>`);
