@@ -151,7 +151,7 @@ async function viewHome() {
   shell(`
     <section class="hero">
       <h1>Is your skincare actually working?</h1>
-      <p class="lede">You bought the serum. Four weeks later you squint at the mirror and still can't tell. Proof answers it properly: it measures your skin with YouCam Skin AI, learns how noisy those measurements are for <em>your</em> face and light, and runs the product like a small clinical trial.</p>
+      <p class="lede">You bought the serum. Four weeks later you squint at the mirror and still can't tell. Proof answers it properly: it measures your skin with YouCam Skin AI, learns how noisy those measurements are for <em>your</em> face and light, and runs the product like a small, honest trial.</p>
       <div class="actions">
         <a class="btn btn-primary" href="#/new">Start a 28-day trial</a>
         <a class="btn btn-quiet" href="#/example">See a finished trial</a>
@@ -638,7 +638,7 @@ function viewMethod() {
   shell(`
     <article class="method">
       <h1>How Proof decides</h1>
-      <p class="lede">A mirror compares today with a fuzzy memory. A before/after selfie compares two noisy numbers. Proof does what a clinical trial does, scaled down to one person.</p>
+      <p class="lede">A mirror compares today with a fuzzy memory. A before/after selfie compares two noisy numbers. Proof borrows the parts of a clinical trial that work for one person: a question set in advance, measured noise, and no peeking.</p>
 
       <h2>YouCam is the instrument</h2>
       <p>Every photo goes to YouCam Skin AI (<code>POST /s2s/v2.0/task/skin-analysis</code>), which scores ${config.concerns.length} concerns from 1 to 100. YouCam returns two numbers per concern. The <code>ui_score</code> is adjusted upward on purpose to feel encouraging; the <code>raw_score</code> is what the model actually measured. Proof only does statistics on <code>raw_score</code>, because an encouraging transform would hide real changes.</p>
