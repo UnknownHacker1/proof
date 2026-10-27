@@ -111,7 +111,7 @@ export async function drawVerdictCard(canvas, trial, report, { verified = null, 
   ctx.textAlign = 'right';
   ctx.fillText('better', px1, axisY);
   ctx.textAlign = 'left';
-  ctx.fillText(`Dots: change in YouCam raw score. Lines: 90% range. Shaded: under ±${report.mcid} points, too small to notice.`, M, axisY + 44);
+  ctx.fillText(`Change in YouCam raw score, with 90% range. Shaded: under ±${report.mcid} points.`, M, axisY + 44);
 
   // Footer
   ctx.strokeStyle = C.rule;
