@@ -84,7 +84,7 @@ async function build(seed) {
   return {
     id: 'demo-maya',
     demo: true,
-    person: 'Maya (synthetic demo)',
+    person: 'Maya',
     product: '10% niacinamide serum',
     type: 'serum',
     targets: TARGETS,

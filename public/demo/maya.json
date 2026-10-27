@@ -1,7 +1,7 @@
 {
  "id": "demo-maya",
  "demo": true,
- "person": "Maya (synthetic demo)",
+ "person": "Maya",
  "product": "10% niacinamide serum",
  "type": "serum",
  "targets": [
@@ -26,7 +26,7 @@
  "mode": "mock",
  "calibration": [
   {
-   "id": "Tmvqebm4h2MOCKpyhlhrvz",
+   "id": "Tmvqen3t92MOCK9uo588s5",
    "at": "2026-09-28T08:32:00.000Z",
    "day": 0,
    "scores": {
@@ -68,7 +68,7 @@
    "unitsIfLive": 14
   },
   {
-   "id": "Tmvqebm5m4MOCKlrb8hggd",
+   "id": "Tmvqen3tj4MOCKfs5h0smc",
    "at": "2026-09-28T08:50:00.000Z",
    "day": 0,
    "scores": {
@@ -110,7 +110,7 @@
    "unitsIfLive": 14
   },
   {
-   "id": "Tmvqebm5r6MOCKjkyiacrn",
+   "id": "Tmvqen3tp6MOCK68dtrzxo",
    "at": "2026-09-28T08:38:00.000Z",
    "day": 0,
    "scores": {
@@ -154,7 +154,7 @@
  ],
  "checkins": [
   {
-   "id": "Tmvqebm5t8MOCKhdyolpij",
+   "id": "Tmvqen3tq8MOCKci8rgwfk",
    "at": "2026-10-01T08:42:00.000Z",
    "day": 3,
    "scores": {
@@ -198,7 +198,7 @@
    "warnings": []
   },
   {
-   "id": "Tmvqebm5uaMOCK6hlsilcu",
+   "id": "Tmvqen3tsaMOCK6e76hn56",
    "at": "2026-10-04T09:05:00.000Z",
    "day": 6,
    "scores": {
@@ -242,7 +242,7 @@
    "warnings": []
   },
   {
-   "id": "Tmvqebm5wcMOCKakttm1o0",
+   "id": "Tmvqen3tscMOCKcmx0bhxy",
    "at": "2026-10-07T08:52:00.000Z",
    "day": 9,
    "scores": {
@@ -286,7 +286,7 @@
    "warnings": []
   },
   {
-   "id": "Tmvqebm5weMOCKga3iznm8",
+   "id": "Tmvqen3tteMOCKgtkk969n",
    "at": "2026-10-10T08:55:00.000Z",
    "day": 12,
    "scores": {
@@ -330,7 +330,7 @@
    "warnings": []
   },
   {
-   "id": "Tmvqebm6igMOCKhy49zcbt",
+   "id": "Tmvqen3tugMOCK686t5n9e",
    "at": "2026-10-13T09:07:00.000Z",
    "day": 15,
    "scores": {
@@ -376,7 +376,7 @@
    ]
   },
   {
-   "id": "Tmvqebm6miMOCK22sfk4fa",
+   "id": "Tmvqen3tviMOCKv5s3lfym",
    "at": "2026-10-16T08:47:00.000Z",
    "day": 18,
    "scores": {
@@ -420,7 +420,7 @@
    "warnings": []
   },
   {
-   "id": "Tmvqebm6nkMOCKa2iyvlsx",
+   "id": "Tmvqen3twkMOCKfpr5z0ev",
    "at": "2026-10-19T08:47:00.000Z",
    "day": 21,
    "scores": {
@@ -464,7 +464,7 @@
    "warnings": []
   },
   {
-   "id": "Tmvqebm6omMOCK52r5an84",
+   "id": "Tmvqen3twmMOCK7q3hsce9",
    "at": "2026-10-22T08:43:00.000Z",
    "day": 24,
    "scores": {
@@ -508,7 +508,7 @@
    "warnings": []
   },
   {
-   "id": "Tmvqebm6poMOCK3gpo5w0d",
+   "id": "Tmvqen3txoMOCKsobtivv7",
    "at": "2026-10-25T08:43:00.000Z",
    "day": 27,
    "scores": {

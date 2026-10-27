@@ -60,14 +60,6 @@ canvas {
   display: block;
 }
 
-/* Tabular figures only where numbers line up; in this face they also widen . and , */
-svg text,
-.nums dd,
-.scores td,
-.day,
-.meta {
-  font-variant-numeric: tabular-nums;
-}
 
 a {
   color: inherit;

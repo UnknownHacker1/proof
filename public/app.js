@@ -12,6 +12,11 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const fmtDate = (d) => d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 const sign = (x, d = 1) => (x >= 0 ? '+' : '−') + Math.abs(x).toFixed(d);
 
+// Charts are drawn in SVG user units; draw them at the width they will occupy so text stays legible.
+function fit(max, inset = 72) {
+  return Math.max(280, Math.min(max, document.documentElement.clientWidth - inset));
+}
+
 let config = { mode: 'mock', concerns: Object.keys(CONCERNS), unitsPerScan: 14, minShortSide: 480, quality: 'sd' };
 let demoTrial = null;
 let cleanup = null;
@@ -144,7 +149,7 @@ async function viewHome() {
         <p class="teaser-title">${esc(demo.product)}, day ${rep.day}</p>
         <p class="fine">Synthetic example. ${esc(trialHeadline(rep).sub)}</p>
       </div>
-      ${forestPlot(rep.rows.filter((r) => r.target || ['oiliness', 'moisture'].includes(r.concern)), { mcid: rep.mcid, width: 560, compact: true })}
+      ${forestPlot(rep.rows.filter((r) => r.target || ['oiliness', 'moisture'].includes(r.concern)), { mcid: rep.mcid, width: fit(560, 82), compact: true })}
       <a class="link" href="#/example">Open the full report</a>
     </section>
     <section class="steps">
@@ -185,7 +190,7 @@ function viewTrialHome(t) {
       <div class="actions">${action}</div>
       ${config.mode === 'mock' && calibrated && !done ? `<button class="btn btn-ghost" id="skip" type="button">Skip ahead ${t.cadenceDays} days</button><p class="fine">Sample mode only: lets you run a whole trial in a few minutes.</p>` : ''}
     </section>
-    ${rep ? `<section class="panel"><h2>${esc(trialHeadline(rep).headline)}</h2><p class="fine">${esc(trialHeadline(rep).sub)}</p>${forestPlot(rep.rows, { mcid: rep.mcid, width: 560, compact: true })}<a class="link" href="#/report/${t.id}">Full report</a></section>` : ''}
+    ${rep ? `<section class="panel"><h2>${esc(trialHeadline(rep).headline)}</h2><p class="fine">${esc(trialHeadline(rep).sub)}</p>${forestPlot(rep.rows, { mcid: rep.mcid, width: fit(560, 82), compact: true })}<a class="link" href="#/report/${t.id}">Full report</a></section>` : ''}
     <section class="quiet-actions"><button class="btn btn-ghost" id="end" type="button">End this trial</button></section>`);
   document.getElementById('skip')?.addEventListener('click', () => {
     store.update(() => (t.dayOffset = (t.dayOffset || 0) + t.cadenceDays));
@@ -335,7 +340,7 @@ function viewCalibrationResult(t) {
       <p class="step">Calibration done</p>
       <h1>Your measurement noise</h1>
       <p class="lede small">How much a single photo's score moves on its own. The darker bar is that wobble; the full bar is the smallest real change Proof should be able to confirm by day ${t.horizonDays} at one check-in every ${t.cadenceDays} days.</p>
-      ${noiseBars(items, { width: 560 })}
+      ${noiseBars(items, { width: fit(560, 40) })}
       <p>${esc(label(best.concern))} measures most steadily (±${best.sigma.toFixed(1)} points). ${esc(label(worst.concern))} is the noisiest (±${worst.sigma.toFixed(1)}), so expect that verdict to take longer.</p>
       <p class="fine">Three photos are not many, so Proof blends them with typical noise levels instead of trusting them outright.${units ? ` YouCam units used so far: ${units}.` : ''}</p>
       <div class="thumbs">${t.calibration.map((c) => (c.thumb ? `<img src="${c.thumb}" alt="Calibration photo">` : '')).join('')}</div>
@@ -458,7 +463,7 @@ async function viewReport(id) {
       <header><h3>${esc(label(r.concern))}</h3><span class="tag tag-${v.tone}">${esc(v.headline)}</span></header>
       <p>${esc(v.body)}</p>
       ${r.fit ? `<details${r.target && i === 0 ? ' open' : ''}><summary>Trend and numbers</summary>
-        ${seriesChart(r, { width: 560, height: 190, horizon: trial.horizonDays })}
+        ${seriesChart(r, { width: fit(560, r.target ? 76 : 40), height: 190, horizon: trial.horizonDays })}
         <dl class="nums">
           <div><dt>Change so far</dt><dd>${sign(r.delta)} pts</dd></div>
           <div><dt>90% range</dt><dd>${sign(r.ci[0])} to ${sign(r.ci[1])}</dd></div>
@@ -475,7 +480,7 @@ async function viewReport(id) {
   shell(
     `
     <section class="report-head">
-      ${trial.demo ? `<p class="demo-flag">Synthetic demo: ${esc(trial.person)}. Generated through Proof's real pipeline against the simulated YouCam API, with known true effects.</p>` : ''}
+      ${trial.demo ? `<p class="demo-flag">Synthetic demo. ${esc(trial.person)} is not a real person: this trial was generated through Proof's real pipeline against the simulated YouCam API, with true effects you can reveal below.</p>` : ''}
       <p class="eyebrowless">${esc(trial.product)}</p>
       <h1>${esc(head.headline)}</h1>
       <p class="lede">${esc(head.sub)}</p>
@@ -486,7 +491,7 @@ async function viewReport(id) {
         <h2 id="fp-title">Change since day 0</h2>
         <p class="fine">Dot: estimated change in YouCam's raw score. Line: 90% range. Shaded: under ±${rep.mcid} points, too small to notice. <span class="claim-key">Filled marker</span> = the product claims this.</p>
       </div>
-      <div id="forest">${forestPlot(rep.rows, { mcid: rep.mcid, width: 720 })}</div>
+      <div id="forest">${forestPlot(rep.rows, { mcid: rep.mcid, width: fit(720, 82) })}</div>
       ${trial.demo ? `<label class="toggle"><input type="checkbox" id="truth"> Show the planted true effects (answer key)</label>` : ''}
     </section>
     <section class="verdicts">
@@ -514,7 +519,7 @@ async function viewReport(id) {
     { wide: true },
   );
   document.getElementById('truth')?.addEventListener('change', (e) => {
-    document.getElementById('forest').innerHTML = forestPlot(rep.rows, { mcid: rep.mcid, width: 720, truth: e.target.checked ? trial.truth : null });
+    document.getElementById('forest').innerHTML = forestPlot(rep.rows, { mcid: rep.mcid, width: fit(720, 82), truth: e.target.checked ? trial.truth : null });
   });
   document.getElementById('verify').addEventListener('click', async () => {
     const out = document.getElementById('verify-out');
@@ -617,7 +622,13 @@ function viewMethod() {
       <p>Test ten concerns and one will look better by luck. So before the trial starts you say what the product claims to fix. Those claims are the main question (Holm correction across them). Everything else is exploratory and has to clear a stricter bar (Benjamini-Hochberg false discovery rate control).</p>
 
       <h2>Does it work?</h2>
-      <p>The method is checked by simulation (<code>npm run simulate</code>, and the test suite). In simulated 28-day trials with no real effect, Proof wrongly calls a claimed concern "improved" in about 3% of trials. Comparing one selfie before and one after, with the same 5-point bar, finds a fake improvement in at least one of ten concerns in most trials. A real 8-point improvement is confirmed by day 28 in about 95% of trials, and the 90% ranges contain the true change about 90% of the time.</p>
+      <p>The method is checked by simulation (<code>npm run simulate</code>: 2,000 simulated 28-day trials per scenario, plus the test suite).</p>
+      <ul>
+        <li>When the product does nothing, Proof calls the claimed concern improved in 3.8% of trials, and calls <em>any</em> of the ten concerns improved in 1.3%.</li>
+        <li>The before/after selfie, with the same 5-point bar, finds a fake improvement in at least one of ten concerns in 66% of those trials.</li>
+        <li>A real 8-point improvement is confirmed by day 27 in 96% of trials, typically clear by day 12. A 5-point one, in 74%.</li>
+        <li>The 90% ranges contain the true change in 92% of trials.</li>
+      </ul>
       <p class="fine">These numbers assume the noise levels in the simulation. Calibration replaces them with your own.</p>
 
       <h2>What Proof can't do</h2>
@@ -652,5 +663,19 @@ async function route() {
 }
 
 window.addEventListener('hashchange', route);
+// Redraw charts at the new width after a resize or rotation (not on capture screens).
+let resizeTimer = null;
+let lastWidth = document.documentElement.clientWidth;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(async () => {
+    const w = document.documentElement.clientWidth;
+    if (Math.abs(w - lastWidth) < 40 || /calibrate|checkin|new/.test(location.hash)) return;
+    lastWidth = w;
+    const y = window.scrollY;
+    await route();
+    window.scrollTo(0, y);
+  }, 250);
+});
 await loadConfig();
 route();

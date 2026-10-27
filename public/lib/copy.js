@@ -51,7 +51,7 @@ export function verdictText(row, { complete = false, mcid = 5 } = {}) {
     case VERDICTS.noChange:
       return {
         headline: 'No real change',
-        body: `Any change in ${name.toLowerCase()} is between ${fmt(lo)} and ${fmt(hi)} points, inside the ±${mcid} band you would not notice. If this is why you bought it, it is not delivering.`,
+        body: `Any change in ${name.toLowerCase()} is between ${fmt(lo)} and ${fmt(hi)} points, inside the ±${mcid} band you would not notice.${row.target ? ' If this is why you bought it, it is not delivering.' : ''}`,
         tone: 'flat',
       };
     case VERDICTS.smallLoss:
