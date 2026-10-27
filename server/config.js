@@ -38,7 +38,7 @@ export function readConfig(env = process.env) {
     perIpDailyScans: Number(env.PER_IP_DAILY_SCANS || 15),
     receiptSecret: env.RECEIPT_SECRET || randomBytes(32).toString('hex'),
     receiptSecretIsEphemeral: !env.RECEIPT_SECRET,
-    port: Number(env.PORT || 8787),
+    port: Number(env.PORT || 3000),
     mockLatencyMs: Number(env.MOCK_LATENCY_MS ?? 450),
   };
   return cfg;

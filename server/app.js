@@ -177,7 +177,7 @@ export function createApp(cfg, { fetchImpl = globalThis.fetch, log = console } =
       if (!s.isFile()) throw new Error('not a file');
       const body = await readFile(file);
       const ext = extname(file);
-      return send(res, 200, body, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': ext === '.html' ? 'no-cache' : 'public, max-age=300' });
+      return send(res, 200, body, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': ext === '.json' || ext === '.svg' ? 'public, max-age=300' : 'no-cache' });
     } catch {
       if (!extname(rel)) {
         const body = await readFile(join(PUBLIC, 'index.html'));
