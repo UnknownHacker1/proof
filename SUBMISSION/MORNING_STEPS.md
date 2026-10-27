@@ -51,5 +51,6 @@ If any video was already recorded (Agent 2's sample-mode capture in `demo/` incl
 | 1:30 verdict cards | Names: Improved since you started, No real change, Worse since you started. A "Proof shows what changed, not why" note sits under the verdicts. |
 | 1:50 method page | New numbers: 66% vs 4.7%, "1 in 10 vs 1 in 26" peeking note, noise-prior caveat, "What Proof can't do" section. |
 | 2:05 verdict card | Bigger text, footer "Synthetic demo: 12 simulated scans" (sample trials say "Sample mode ... not YouCam"), last line "Shows change since day 0, not its cause". |
+| 0:20 home hero | The intro text now ends "runs the product like a small, honest trial" (no "clinical trial"). |
 | Any frame of the header | Nav links are taller (44 px tap targets) and wrap to a second line at phone width. |
 | Calibration with the camera blocked | The disabled "Take photo" button is gone; only "Upload a photo" shows, above the fold. |
