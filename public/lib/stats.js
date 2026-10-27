@@ -410,9 +410,8 @@ export function analyzeTrial(trial, { concerns, noisePrior = {}, mcid = DEFAULTS
     const sessions = [{ day: 0, values: reps }, ...checks];
     const fit = fitTrend(sessions, noise.sigma);
     const lastDay = Math.max(...checks.map((c) => c.day));
-    const tq = tQuantile(1 - alpha, fit.df);
     const delta = fit.slope * lastDay;
-    const half = tq * fit.seSlope * lastDay;
+    const half = tQuantile(1 - alpha, fit.df) * fit.seSlope * lastDay;
     const tstat = fit.seSlope > 0 ? fit.slope / fit.seSlope : 0;
     const pImprove = 1 - tCdf(tstat, fit.df);
     const pWorse = tCdf(tstat, fit.df);
@@ -422,7 +421,8 @@ export function analyzeTrial(trial, { concerns, noisePrior = {}, mcid = DEFAULTS
       fit,
       lastDay,
       delta,
-      ci: [delta - half, delta + half],
+      ci: [delta - half, delta + half], // unadjusted; replaced below by the corrected range
+      ciRaw: [delta - half, delta + half],
       deltaPct: base.baseline ? (100 * delta) / base.baseline : null,
       pImprove,
       pWorse,
@@ -447,6 +447,19 @@ export function analyzeTrial(trial, { concerns, noisePrior = {}, mcid = DEFAULTS
     applyAdj(exp, 'pWorse', benjaminiHochberg);
   }
 
+  // Ranges shown to the user match the corrected verdicts: each row's range uses the
+  // per-row level the correction implies (alpha x raw p / adjusted p, for the direction of
+  // the estimate), so a range excludes zero exactly when the corrected test says so.
+  for (const r of tested) {
+    const group = r.target ? tgt : exp;
+    const [p, pAdj] = r.delta >= 0 ? [r.pImprove, r.pImproveAdj] : [r.pWorse, r.pWorseAdj];
+    const floor = alpha / Math.max(1, group.length);
+    const level = p > 0 && pAdj > 0 ? Math.min(alpha, Math.max(floor, (alpha * p) / pAdj)) : floor;
+    const half = tQuantile(1 - level, r.fit.df) * r.fit.seSlope * r.lastDay;
+    r.ci = [r.delta - half, r.delta + half];
+    r.ciLevel = 1 - 2 * level;
+  }
+
   for (const r of tested) {
     if (r.pImproveAdj < alpha) r.verdict = r.delta >= mcid ? VERDICTS.improved : VERDICTS.smallGain;
     else if (r.pWorseAdj < alpha) r.verdict = -r.delta >= mcid ? VERDICTS.worse : VERDICTS.smallLoss;
@@ -468,7 +481,10 @@ export function analyzeTrial(trial, { concerns, noisePrior = {}, mcid = DEFAULTS
     cadenceDays,
     mcid,
     alpha,
+    // Verdicts are only issued at the planned final check-in. Before that the report shows the
+    // trend so far, because checking for a verdict at every check-in inflates false alarms.
     complete: day + cadenceDays > horizonDays,
+    finalDay: Math.floor(horizonDays / cadenceDays) * cadenceDays,
     rows,
     targets: rows.filter((r) => r.target),
     others: rows.filter((r) => !r.target),

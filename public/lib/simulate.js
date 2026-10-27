@@ -56,15 +56,34 @@ export function createSubject({ seed = 1, concerns = DEFAULT_CONCERNS, effects =
   return { baseline, trueLevel, observe, photo, concerns, effects };
 }
 
+// How the mock YouCam (and this simulator) model lighting: dim photos read as duller skin on
+// every concern, growing below a comfortable mean brightness of 110/255.
+export function lightingPenaltyFor(luma) {
+  return luma != null && luma < 110 ? (110 - luma) / 12 : 0;
+}
+
 // A full trial as Proof stores it: 3 calibration photos on day 0, then a check-in every
 // `cadenceDays` up to `horizonDays`.
-export function simulateTrial(subject, { cadenceDays = 3, horizonDays = 28, targets = [], calibrationShots = 3, skip = [] } = {}) {
+// lighting(day) -> mean brightness of that photo (optional). Each photo then gets the lighting
+// penalty, and `weighFor(luma, baselineLuma)` (the app's own rule, passed in) sets its weight.
+export function simulateTrial(subject, { cadenceDays = 3, horizonDays = 28, targets = [], calibrationShots = 3, skip = [], lighting = null, weighFor = null } = {}) {
+  const shot = (day) => {
+    const luma = lighting ? lighting(day) : null;
+    return { luma, scores: subject.photo(day, { lightingPenalty: lightingPenaltyFor(luma) }) };
+  };
   const calibration = [];
-  for (let i = 0; i < calibrationShots; i++) calibration.push({ scores: subject.photo(0) });
+  for (let i = 0; i < calibrationShots; i++) {
+    const p = shot(0);
+    calibration.push({ scores: p.scores, quality: { luma: p.luma } });
+  }
+  const baseLuma = lighting ? calibration.reduce((t, c) => t + c.quality.luma, 0) / calibration.length : null;
   const checkins = [];
   for (let d = cadenceDays; d <= horizonDays; d += cadenceDays) {
     if (skip.includes(d)) continue;
-    checkins.push({ day: d, scores: subject.photo(d) });
+    const p = shot(d);
+    const c = { day: d, scores: p.scores };
+    if (lighting && weighFor) c.weight = weighFor(p.luma, baseLuma);
+    checkins.push(c);
   }
   return { targets, cadenceDays, horizonDays, calibration, checkins };
 }

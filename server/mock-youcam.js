@@ -14,6 +14,7 @@
 
 import { imageInfo } from './image-info.js';
 import { ALL_SD_CONCERNS, ALL_HD_CONCERNS, fromDstAction } from './youcam-client.js';
+import { lightingPenaltyFor } from '../public/lib/simulate.js';
 
 const MOCK_STORAGE = 'https://mock-storage.proof.invalid/upload/';
 const SD = new Set(ALL_SD_CONCERNS);
@@ -140,7 +141,7 @@ export function createMockYouCam({ apiKey = 'mock-key', subjectFor, runningPolls
   function buildOutput(t) {
     const { subject, day = 0, luma } = t.ctx || {};
     // Dim light reads as duller, rougher skin: penalty grows below a comfortable 110/255.
-    const lightingPenalty = luma != null && luma < 110 ? (110 - luma) / 12 : 0;
+    const lightingPenalty = lightingPenaltyFor(luma);
     const out = [];
     for (const action of t.actions) {
       const concern = fromDstAction(action);

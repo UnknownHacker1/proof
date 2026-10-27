@@ -111,17 +111,34 @@ test('verdicts: improvement, no change, worse, too early', () => {
   assert.equal(e.rows[0].needed, 1);
 });
 
-test('a flat 28-day trial ends with "no change beyond noise" for most concerns', () => {
+test('a flat 28-day trial reaches "no change" for several concerns and never a false win', () => {
   const subj = createSubject({ seed: 11 });
   const trial = simulateTrial(subj, { targets: ['redness'], cadenceDays: 2 });
   const r = analyzeTrial(trial, { noisePrior: noisePrior() });
   const noChange = r.rows.filter((x) => x.verdict === VERDICTS.noChange).length;
-  assert.ok(noChange >= 3, `only ${noChange} of 10 reached no-change`);
+  // Exploratory concerns get corrected (wider) ranges, so fewer of them can prove "no change".
+  assert.ok(noChange >= 2, `only ${noChange} of 10 reached no-change`);
   assert.ok(r.rows.every((x) => x.verdict !== VERDICTS.improved && x.verdict !== VERDICTS.worse));
   // In this seed one exploratory concern (wrinkle) drifts up by luck with an interval that
-  // excludes zero. Uncorrected, that would be a fake win; the BH correction holds it back.
+  // excludes zero. Uncorrected, that would be a fake win; the BH correction holds it back,
+  // and the range shown to the user is widened to match.
   const wr = r.rows.find((x) => x.concern === 'wrinkle');
-  assert.ok(wr.ci[0] > 0 && wr.pImprove < 0.05 && wr.pImproveAdj >= 0.05);
+  assert.ok(wr.ciRaw[0] > 0 && wr.pImprove < 0.05 && wr.pImproveAdj >= 0.05);
+  assert.ok(wr.ci[0] <= 0, 'corrected range includes zero, like the corrected verdict');
+});
+
+test('shown ranges agree with the corrected verdicts on every row', () => {
+  for (let seed = 1; seed <= 60; seed++) {
+    const subj = createSubject({ seed, effects: seed % 3 ? {} : { redness: { delta: 6, onset: 0, ramp: 14 } } });
+    const r = analyzeTrial(simulateTrial(subj, { targets: ['redness', 'pore'] }), { noisePrior: noisePrior() });
+    for (const x of r.rows.filter((row) => row.fit)) {
+      const sigUp = x.pImproveAdj < 0.05;
+      const sigDown = x.pWorseAdj < 0.05;
+      assert.equal(x.ci[0] > 0, sigUp, `seed ${seed} ${x.concern}: up`);
+      assert.equal(x.ci[1] < 0, sigDown, `seed ${seed} ${x.concern}: down`);
+      assert.ok(x.ci[1] - x.ci[0] >= x.ciRaw[1] - x.ciRaw[0] - 1e-9);
+    }
+  }
 });
 
 test('checkinsNeeded is a small positive number mid-trial', () => {
