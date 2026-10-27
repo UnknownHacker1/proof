@@ -341,7 +341,7 @@ function viewCalibrationResult(t) {
       <h1>Your measurement noise</h1>
       <p class="lede small">How much a single photo's score moves on its own. The darker bar is that wobble; the full bar is the smallest real change Proof should be able to confirm by day ${t.horizonDays} at one check-in every ${t.cadenceDays} days.</p>
       ${noiseBars(items, { width: fit(560, 40) })}
-      <p>${esc(label(best.concern))} measures most steadily (±${best.sigma.toFixed(1)} points). ${esc(label(worst.concern))} is the noisiest (±${worst.sigma.toFixed(1)}), so expect that verdict to take longer.</p>
+      <p>Steadiest: ${esc(label(best.concern).toLowerCase())}, ±${best.sigma.toFixed(1)} points per photo. Noisiest: ${esc(label(worst.concern).toLowerCase())}, ±${worst.sigma.toFixed(1)}, so expect that verdict to take longer.</p>
       <p class="fine">Three photos are not many, so Proof blends them with typical noise levels instead of trusting them outright.${units ? ` YouCam units used so far: ${units}.` : ''}</p>
       <div class="thumbs">${t.calibration.map((c) => (c.thumb ? `<img src="${c.thumb}" alt="Calibration photo">` : '')).join('')}</div>
       <div class="actions"><a class="btn btn-primary" href="#/">Start the trial</a></div>

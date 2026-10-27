@@ -65,7 +65,7 @@ export async function drawVerdictCard(canvas, trial, report, { verified = null, 
 
   // Mini forest plot: claimed concerns first, then up to three others with a verdict.
   const rows = [...report.targets, ...report.others.filter((r) => r.fit && r.verdict !== 'too-early')].filter((r) => r.fit).slice(0, 6);
-  const plotTop = Math.max(y + 80, 620);
+  const plotTop = Math.max(y + 100, 560);
   const rowH = 86;
   const labelW = 300;
   const px0 = M + labelW;
@@ -110,21 +110,20 @@ export async function drawVerdictCard(canvas, trial, report, { verified = null, 
   ctx.fillText('worse', px0, axisY);
   ctx.textAlign = 'right';
   ctx.fillText('better', px1, axisY);
-  ctx.textAlign = 'center';
-  ctx.fillText(`shaded: under ±${report.mcid} points, too small to notice`, (px0 + px1) / 2, axisY);
   ctx.textAlign = 'left';
+  ctx.fillText(`Dots: change in YouCam raw score. Lines: 90% range. Shaded: under ±${report.mcid} points, too small to notice.`, M, axisY + 44);
 
   // Footer
   ctx.strokeStyle = C.rule;
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(M, H - 170);
-  ctx.lineTo(W - M, H - 170);
+  ctx.moveTo(M, H - 190);
+  ctx.lineTo(W - M, H - 190);
   ctx.stroke();
   const photos = trial.calibration.length + trial.checkins.length;
   ctx.font = `500 26px ${sans}`;
   ctx.fillStyle = C.ink;
-  ctx.fillText(`${photos} photos measured with YouCam Skin AI`, M, H - 120);
+  ctx.fillText(`${photos} photos measured with YouCam Skin AI`, M, H - 130);
   ctx.font = `400 24px ${sans}`;
   ctx.fillStyle = C.soft;
   const proofLine = trial.demo
@@ -132,9 +131,7 @@ export async function drawVerdictCard(canvas, trial, report, { verified = null, 
     : verified != null
       ? `${verified} of ${photos} scans carry a valid server signature${code ? `, code ${code}` : ''}`
       : '90% ranges, corrected for testing several concerns at once';
-  ctx.fillText(proofLine, M, H - 80);
-  ctx.textAlign = 'right';
-  ctx.fillText('Not medical advice', W - M, H - 80);
-  ctx.textAlign = 'left';
+  ctx.fillText(proofLine, M, H - 90);
+  ctx.fillText('Not medical advice.', M, H - 54);
   return canvas;
 }
