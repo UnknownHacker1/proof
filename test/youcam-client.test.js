@@ -67,7 +67,9 @@ test('full flow: register, upload, start, poll, read results', async () => {
     assert.ok(n.scores[c] >= 1 && n.scores[c] <= 100);
     assert.ok(Number.isInteger(n.ui[c]));
   }
-  assert.ok(Number.isFinite(n.all) && Number.isFinite(n.skinAge));
+  // The mock emits only the documented format:"json" fields.
+  for (const item of res.output) assert.deepEqual(Object.keys(item).sort(), ['mask_urls', 'raw_score', 'type', 'ui_score']);
+  assert.deepEqual(res.scores, n.scores);
 });
 
 test('repeat photos of the same simulated face agree within noise', async () => {
@@ -139,25 +141,60 @@ test('polling gives up with TaskTimeout instead of hanging', async () => {
   let t = 0;
   const fetchImpl = createMockYouCam({ apiKey: 'k', subjectFor: () => ({ subject: createSubject({ seed: 2 }) }), runningPolls: 1e9 });
   const client = createYouCamClient({ apiKey: 'k', fetchImpl, sleep: async (ms) => (t += ms), now: () => t, maxPollMs: 20000 });
-  await assert.rejects(client.analyzeSkin(fakeJpeg(960, 1280), { concerns: ['acne'] }), { code: 'TaskTimeout' });
+  await assert.rejects(client.analyzeSkin(fakeJpeg(960, 1280), { concerns: ['acne'] }), { code: 'TaskTimeout', spent: 9 });
 });
 
-test('HD results with sub-regions normalize to the whole-face score', () => {
+test('documented flat shape parses; undocumented extras are ignored', () => {
   const output = [
-    { type: 'hd_pore', region: 'whole', raw_score: 49.2, ui_score: 67, mask_urls: ['a'] },
-    { type: 'hd_pore', region: 'nose', raw_score: 29.1, ui_score: 58, mask_urls: ['b'] },
-    { type: 'hd_dark_circle', raw_score: 80.2, ui_score: 76, mask_urls: ['c'] },
-    { type: 'skin_age', score: 29 },
-    { type: 'all', score: 28.5 },
-    { type: 'resize_image', mask_urls: ['r'] },
+    { type: 'texture', ui_score: 68, raw_score: 57.33, mask_urls: ['t'] },
+    { type: 'pore', ui_score: 92, raw_score: 95.34, mask_urls: ['p'] },
+    { type: 'all', score: 75.7 },
+    { type: 'skin_age', score: 37 },
   ];
   const n = normalizeSkinOutput(output);
-  assert.deepEqual(n.scores, { pore: 49.2, dark_circle_v2: 80.2 });
-  assert.deepEqual(n.regions, { pore: { nose: 29.1 } });
-  assert.equal(n.skinAge, 29);
-  assert.equal(n.all, 28.5);
-  assert.equal(n.resized, 'r');
-  assert.equal(n.masks.pore, 'a');
+  assert.deepEqual(n.scores, { texture: 57.33, pore: 95.34 });
+  assert.deepEqual(n.ui, { texture: 68, pore: 92 });
+  assert.equal(n.masks.pore, 'p');
+  assert.deepEqual(Object.keys(n).sort(), ['masks', 'regions', 'scores', 'ui']);
+});
+
+test('HD scores nested by region name (score_info.json style) parse to the whole-face score', () => {
+  // As array items with region objects...
+  const asItems = normalizeSkinOutput([
+    { type: 'hd_pore', whole: { raw_score: 49.2, ui_score: 67 }, nose: { raw_score: 29.14, ui_score: 58 }, forehead: { raw_score: 51, ui_score: 70 }, mask_urls: ['m'] },
+    { type: 'hd_texture', whole: { raw_score: '66.39', ui_score: 75 } },
+    { type: 'hd_dark_circle', raw_score: 80.2, ui_score: 76, mask_urls: ['c'] },
+  ]);
+  assert.deepEqual(asItems.scores, { pore: 49.2, texture: 66.39, dark_circle_v2: 80.2 });
+  assert.deepEqual(asItems.regions.pore, { nose: 29.14, forehead: 51 });
+  assert.equal(asItems.masks.pore, 'm');
+  // ...or as an object keyed by concern.
+  const asObject = normalizeSkinOutput({ hd_wrinkle: { whole: { raw_score: 40.1, ui_score: 61 }, crowfeet: { raw_score: 33, ui_score: 55 } }, all: { score: 75.7 }, skin_age: 37 });
+  assert.deepEqual(asObject.scores, { wrinkle: 40.1 });
+  assert.deepEqual(asObject.regions.wrinkle, { crowfeet: 33 });
+  // A flat item with a region field is still read as a sub-region, not the whole face.
+  const flatRegions = normalizeSkinOutput([
+    { type: 'hd_pore', region: 'whole', raw_score: 49.2 },
+    { type: 'hd_pore', region: 'nose', raw_score: 29.1 },
+  ]);
+  assert.deepEqual(flatRegions.scores, { pore: 49.2 });
+  assert.deepEqual(flatRegions.regions, { pore: { nose: 29.1 } });
+});
+
+test('a result missing any requested concern fails loudly and reports the units as spent', async () => {
+  const subject = createSubject({ seed: 9 });
+  const fetchImpl = createMockYouCam({ apiKey: 'k', subjectFor: () => ({ subject }), runningPolls: 0, transformOutput: (out) => out.filter((i) => i.type !== 'redness') });
+  const client = createYouCamClient({ apiKey: 'k', fetchImpl, sleep: noSleep });
+  await assert.rejects(client.analyzeSkin(fakeJpeg(960, 1280), { concerns: DEFAULT_CONCERNS }), (err) => {
+    assert.equal(err.code, 'BadResultShape');
+    assert.match(err.message, /redness/);
+    assert.equal(err.spent, 14);
+    assert.ok(err.taskId);
+    return true;
+  });
+  // A shape Proof can't read at all (scores nested somewhere unknown) also fails, not "ok with no scores".
+  const odd = createMockYouCam({ apiKey: 'k', subjectFor: () => ({ subject }), runningPolls: 0, transformOutput: (out) => out.map((i) => ({ type: i.type, result: { score: i.raw_score } })) });
+  await assert.rejects(createYouCamClient({ apiKey: 'k', fetchImpl: odd, sleep: noSleep }).analyzeSkin(fakeJpeg(960, 1280), { concerns: ['acne', 'pore'] }), { code: 'BadResultShape' });
 });
 
 test('task delete and feature cost endpoints', async () => {

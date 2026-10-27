@@ -78,8 +78,6 @@ function scanFrom(result, shot, day, thumb) {
     day,
     scores: result.scores,
     ui: result.ui,
-    all: result.all,
-    skinAge: result.skinAge,
     quality: shot.metrics,
     mode: result.mode,
     units: result.unitsCharged,

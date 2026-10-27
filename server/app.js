@@ -3,7 +3,7 @@
 
 import { readFile, stat } from 'node:fs/promises';
 import { join, normalize, extname, sep } from 'node:path';
-import { createYouCamClient, normalizeSkinOutput, YouCamError, MIN_SHORT_SIDE, ENGINE_HINTS } from './youcam-client.js';
+import { createYouCamClient, YouCamError, MIN_SHORT_SIDE, ENGINE_HINTS } from './youcam-client.js';
 import { createMockYouCam } from './mock-youcam.js';
 import { imageInfo } from './image-info.js';
 import { signReceipt, verifyReceipt, trialCode } from './receipts.js';
@@ -74,6 +74,7 @@ export function createApp(cfg, { fetchImpl = globalThis.fetch, log = console } =
   const subjects = new Map();
   const live = cfg.mode === 'live' ? createYouCamClient({ apiKey: cfg.apiKey, host: cfg.host, fetchImpl }) : null;
   let costCache = null;
+  let loggedLiveShape = false;
 
   function subjectFor(id) {
     const key = String(id || 'anon').slice(0, 64);
@@ -136,9 +137,14 @@ export function createApp(cfg, { fetchImpl = globalThis.fetch, log = console } =
 
     try {
       const result = await client.analyzeSkin(bytes, { contentType: info.type, fileName: info.type === 'image/png' ? 'selfie.png' : 'selfie.jpg', concerns: cfg.dstActions, overlay: true });
-      const norm = normalizeSkinOutput(result.output);
+      const norm = result;
       let masks = norm.masks;
       if (mode === 'live') {
+        if (!loggedLiveShape) {
+          // First live result of this process: keep the raw shape in the log for checking.
+          loggedLiveShape = true;
+          log.info?.('first live YouCam output:', JSON.stringify(result.output).slice(0, 4000));
+        }
         budget.charge(ip, result.unitsCharged);
         if (cfg.deleteAfter) {
           masks = await inlineMasks(norm.masks, wantedMasks);
@@ -154,8 +160,6 @@ export function createApp(cfg, { fetchImpl = globalThis.fetch, log = console } =
         ui: norm.ui,
         regions: norm.regions,
         masks,
-        all: norm.all,
-        skinAge: norm.skinAge,
         unitsCharged: mode === 'live' ? result.unitsCharged : 0,
         unitsIfLive: result.unitsCharged,
         polls: result.polls,
@@ -165,6 +169,13 @@ export function createApp(cfg, { fetchImpl = globalThis.fetch, log = console } =
       });
     } catch (err) {
       if (err instanceof YouCamError) {
+        if (err.spent && mode === 'live') {
+          // Billed (or may be) by YouCam but unusable: count it, return no scores and no receipt.
+          budget.charge(ip, err.spent);
+          log.error?.('YouCam result unusable', err.code, err.message, JSON.stringify(err.body ?? null).slice(0, 4000));
+          if (err.taskId && cfg.deleteAfter && err.code !== 'TaskTimeout') live.deleteTask(err.taskId).catch(() => {});
+          return send(res, 502, { ok: false, code: err.code, message: err.message, hint: err.hint, retryable: true, unitsCharged: err.spent });
+        }
         const engine = err.status === 200; // task finished with task_status=error: no units used
         return send(res, engine ? 422 : err.status === 401 ? 502 : err.status >= 400 && err.status < 500 ? 400 : 502, {
           ok: false,

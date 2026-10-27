@@ -3,7 +3,9 @@
 // It answers the documented endpoints with the documented JSON shapes (see
 // docs/youcam-api-notes.md): file registration with a pre-signed PUT URL, the upload itself,
 // task creation, a few `running` polls, then `success` with results.output[] items carrying
-// type / raw_score / ui_score / mask_urls plus skin_age, all and resize_image. It also enforces
+// exactly the documented format:"json" fields: type / ui_score / raw_score / mask_urls (HD
+// concerns too, as one whole-face item each; the JSON shape of HD sub-regions is not documented,
+// so the mock does not invent one). It also enforces
 // the documented failure modes: bad or missing key, unknown concern, mixed SD/HD, upload
 // skipped, image below minimum size, too dark, unknown task id.
 //
@@ -31,7 +33,8 @@ export function uiFromRaw(raw) {
 
 // subjectFor(): returns { subject, day, luma } for the current request. `luma` is the mean
 // brightness (0-255) the browser measured; dim photos score lower, like the real thing.
-export function createMockYouCam({ apiKey = 'mock-key', subjectFor, runningPolls = 2, maskBase = '/mock-mask/' } = {}) {
+// transformOutput(output) lets tests feed the client other shapes through the full flow.
+export function createMockYouCam({ apiKey = 'mock-key', subjectFor, runningPolls = 2, maskBase = '/mock-mask/', transformOutput = (o) => o } = {}) {
   const files = new Map();
   const tasks = new Map();
   const log = [];
@@ -106,7 +109,7 @@ export function createMockYouCam({ apiKey = 'mock-key', subjectFor, runningPolls
       t.polls++;
       if (t.polls <= runningPolls) return json(200, { status: 200, data: { task_status: 'running' } });
       if (t.error) return json(200, { status: 200, data: { task_status: 'error', error: t.error, error_message: t.error } });
-      return json(200, { status: 200, data: { task_status: 'success', results: { output: buildOutput(t) } } });
+      return json(200, { status: 200, data: { task_status: 'success', results: { output: transformOutput(buildOutput(t)) } } });
     }
 
     if (method === 'POST' && path === '/s2s/v2.0/task/delete') {
@@ -139,29 +142,13 @@ export function createMockYouCam({ apiKey = 'mock-key', subjectFor, runningPolls
     // Dim light reads as duller, rougher skin: penalty grows below a comfortable 110/255.
     const lightingPenalty = luma != null && luma < 110 ? (110 - luma) / 12 : 0;
     const out = [];
-    let sum = 0;
-    let n = 0;
     for (const action of t.actions) {
       const concern = fromDstAction(action);
       if (concern === 'skin_type') continue;
       const raw = subject?.concerns?.includes(concern) ? subject.observe(concern, day, { lightingPenalty }) : 40 + Math.random() * 50;
       const rounded = Math.round(raw * 1e4) / 1e4;
-      sum += rounded;
-      n++;
-      const base = { type: action, raw_score: rounded, ui_score: uiFromRaw(rounded), mask_urls: [`${maskBase}${concern}.svg`] };
-      if (t.isHd && ['hd_pore', 'hd_wrinkle', 'hd_texture', 'hd_acne'].includes(action)) {
-        out.push({ ...base, region: 'whole' });
-        const sub = action === 'hd_pore' ? ['forehead', 'nose', 'cheek'] : action === 'hd_wrinkle' ? ['forehead', 'glabellar', 'crowfeet', 'periocular', 'nasolabial', 'marionette'] : [];
-        for (const region of sub) {
-          const r = Math.max(1, Math.min(99, rounded + (Math.random() - 0.5) * 20));
-          out.push({ type: action, region, raw_score: r, ui_score: uiFromRaw(r), mask_urls: [`${maskBase}${concern}.svg`] });
-        }
-      } else out.push(base);
+      out.push({ type: action, ui_score: uiFromRaw(rounded), raw_score: rounded, mask_urls: [`${maskBase}${concern}.svg`] });
     }
-    const allScore = n ? sum / n : 50;
-    out.push({ type: 'skin_age', score: Math.round(18 + (100 - allScore) * 0.55) });
-    out.push({ type: 'all', score: allScore });
-    out.push({ type: 'resize_image', mask_urls: [`${maskBase}resize.svg`] });
     return out;
   }
 

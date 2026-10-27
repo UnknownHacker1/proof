@@ -53,6 +53,7 @@ for (const f of [...files, files[0]]) {
     const n = normalizeSkinOutput(r.output);
     runs.push({ file: f, ...n, ms: r.timings.totalMs });
     console.log(`ok in ${(r.timings.totalMs / 1000).toFixed(1)}s, ${r.polls} polls`);
+    if (live && runs.length === 1) writeFileSync(join(dir, "raw-output.json"), JSON.stringify(r.output, null, 1)); // first live reply, kept for checking the shape
     if (live) client.deleteTask(r.taskId).catch(() => {});
   } catch (err) {
     console.log(`failed: ${err.code} ${err.hint || err.message}`);

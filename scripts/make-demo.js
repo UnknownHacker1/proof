@@ -62,8 +62,6 @@ async function build(seed) {
       day,
       scores: n.scores,
       ui: n.ui,
-      all: n.all,
-      skinAge: n.skinAge,
       quality: { luma, warmth: 1.14 + (rng() - 0.5) * 0.04, sharpness: 140 + rng() * 60, evenness: 0.03 + rng() * 0.04, clipHigh: 0, clipLow: 0 },
       mode: 'mock',
       units: 0,

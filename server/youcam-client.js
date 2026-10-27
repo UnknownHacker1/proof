@@ -43,6 +43,8 @@ export const MIN_SHORT_SIDE = { sd: 480, hd: 1080 };
 export const ENGINE_HINTS = {
   error_below_min_image_size: 'The photo is too small. Use the camera at full resolution.',
   error_exceed_max_image_size: 'The photo is too large. Proof resizes before sending, so retake it.',
+  BadResultShape: 'YouCam answered, but not in the shape Proof expects, so nothing was saved. Try once more; if it repeats, the server log has the raw reply.',
+  TaskTimeout: 'YouCam is taking unusually long. Nothing was saved; try again in a minute.',
   error_src_face_too_small: 'Move closer: your face should fill the oval, about two thirds of the frame width.',
   error_src_face_out_of_bound: 'Part of your face is outside the frame. Center it in the oval.',
   error_lighting_dark: 'Too dark. Face a window or a bright lamp and try again.',
@@ -55,7 +57,7 @@ export const ENGINE_HINTS = {
 };
 
 export class YouCamError extends Error {
-  constructor(message, { code = 'unknown', status = 0, retryable = false, hint, body } = {}) {
+  constructor(message, { code = 'unknown', status = 0, retryable = false, hint, body, spent = 0, taskId = null } = {}) {
     super(message);
     this.name = 'YouCamError';
     this.code = code;
@@ -63,6 +65,9 @@ export class YouCamError extends Error {
     this.retryable = retryable;
     this.hint = hint ?? ENGINE_HINTS[code];
     this.body = body;
+    // Units YouCam has billed (or may still bill) even though Proof got no usable result.
+    this.spent = spent;
+    this.taskId = taskId;
   }
 }
 
@@ -202,17 +207,38 @@ export function createYouCamClient({
     await uploadBytes(upload, bytes, contentType);
     const t1 = now();
     const taskId = await startSkinAnalysis({ fileId, concerns, overlay });
-    const { data, polls } = await pollSkinAnalysis(taskId, { onPoll });
+    const unitsIfDone = unitsForSkinAnalysis(concerns.length, quality);
+    let data, polls;
+    try {
+      ({ data, polls } = await pollSkinAnalysis(taskId, { onPoll }));
+    } catch (err) {
+      // A task we stopped watching can still finish and be billed, so count it as spent.
+      if (err.code === 'TaskTimeout') Object.assign(err, { spent: unitsIfDone, taskId });
+      throw err;
+    }
     const t2 = now();
     const output = data?.results?.output;
-    if (!Array.isArray(output)) throw new YouCamError('Result had no output array. Was format=json sent?', { code: 'BadResultShape', body: data });
+    const unitsCharged = unitsIfDone;
+    const norm = normalizeSkinOutput(output);
+    const missing = concerns.map(fromDstAction).filter((c) => c !== 'skin_type' && !Number.isFinite(norm.scores[c]));
+    if (missing.length) {
+      // The task succeeded, so YouCam has billed it, but Proof can't use a partial result.
+      throw new YouCamError(`YouCam's result had no score for: ${missing.join(', ')}`, {
+        code: 'BadResultShape',
+        status: 200,
+        spent: unitsCharged,
+        taskId,
+        body: data,
+      });
+    }
     return {
       taskId,
       fileId,
       output,
+      ...norm,
       polls,
       quality,
-      unitsCharged: unitsForSkinAnalysis(concerns.length, quality),
+      unitsCharged,
       timings: { uploadMs: t1 - t0, analysisMs: t2 - t1, totalMs: t2 - t0 },
     };
   }
@@ -220,40 +246,42 @@ export function createYouCamClient({
   return { request, registerFile, uploadBytes, startSkinAnalysis, pollSkinAnalysis, deleteTask, featureCost, analyzeSkin };
 }
 
-// Turns YouCam's output array into Proof's per-concern record. raw_score is what Proof tests;
+// Turns YouCam's result into Proof's per-concern record. raw_score is what Proof tests;
 // ui_score is kept for display only because YouCam documents it as adjusted to feel positive.
+//
+// The documented format:"json" output is a flat array: { type, ui_score, raw_score, mask_urls }.
+// The docs show HD sub-regions only inside the ZIP's score_info.json, nested by region name
+// ({ "hd_pore": { "whole": {...}, "nose": {...} } }), so that nesting is accepted too, whether it
+// arrives as array items or as an object keyed by concern. Anything else is ignored, and
+// analyzeSkin fails loudly if a requested concern ends up without a score.
+const num = (v) => (typeof v === 'number' ? v : typeof v === 'string' && v.trim() !== '' ? Number(v) : NaN);
+const isScore = (o) => o && typeof o === 'object' && Number.isFinite(num(o.raw_score));
+
 export function normalizeSkinOutput(output) {
   const scores = {};
   const ui = {};
   const masks = {};
   const regions = {};
-  let all = null;
-  let skinAge = null;
-  let resized = null;
-  for (const item of output || []) {
+  const items = Array.isArray(output)
+    ? output
+    : output && typeof output === 'object'
+      ? Object.entries(output).map(([type, v]) => ({ type, ...(v && typeof v === 'object' ? v : {}) }))
+      : [];
+  for (const item of items) {
     if (!item || typeof item.type !== 'string') continue;
-    if (item.type === 'all') {
-      all = Number.isFinite(item.score) ? item.score : null;
-      continue;
-    }
-    if (item.type === 'skin_age') {
-      skinAge = Number.isFinite(item.score) ? item.score : null;
-      continue;
-    }
-    if (item.type === 'resize_image') {
-      resized = item.mask_urls?.[0] ?? null;
-      continue;
-    }
     const concern = fromDstAction(item.type);
-    if (!Number.isFinite(item.raw_score)) continue;
-    const region = item.region || 'whole';
-    if (region !== 'whole') {
-      (regions[concern] ||= {})[region] = item.raw_score;
-      continue;
+    let whole = null;
+    if (isScore(item) && (!item.region || item.region === 'whole')) whole = item;
+    else if (isScore(item) && item.region) (regions[concern] ||= {})[item.region] = num(item.raw_score);
+    if (isScore(item.whole)) whole = { ...item.whole, mask_urls: item.whole.mask_urls || item.mask_urls };
+    for (const [k, v] of Object.entries(item)) {
+      if (k !== 'whole' && isScore(v)) (regions[concern] ||= {})[k] = num(v.raw_score);
     }
-    scores[concern] = item.raw_score;
-    if (Number.isFinite(item.ui_score)) ui[concern] = item.ui_score;
-    if (item.mask_urls?.[0]) masks[concern] = item.mask_urls[0];
+    if (!whole) continue;
+    scores[concern] = num(whole.raw_score);
+    if (Number.isFinite(num(whole.ui_score))) ui[concern] = num(whole.ui_score);
+    const mask = Array.isArray(whole.mask_urls) ? whole.mask_urls[0] : null;
+    if (mask) masks[concern] = mask;
   }
-  return { scores, ui, masks, regions, all, skinAge, resized };
+  return { scores, ui, masks, regions };
 }

@@ -39,13 +39,13 @@ YouCam server in `server/mock-youcam.js` replies in exactly these shapes.
 
 ## Result shape (`format: "json"`)
 
+Re-checked against docs.perfectcorp.com/reference/ai_skin_analysis.md. The only documented
+`format: "json"` sample is a flat array:
+
 ```json
 { "status": 200, "data": { "task_status": "success", "results": { "output": [
-  { "type": "redness", "raw_score": 72.01, "ui_score": 77, "mask_urls": ["https://..."] },
-  { "type": "hd_pore", "region": "nose", "raw_score": 29.1, "ui_score": 58, "mask_urls": ["..."] },
-  { "type": "skin_age", "score": 29 },
-  { "type": "all", "score": 75.7 },
-  { "type": "resize_image", "mask_urls": ["https://..."] }
+  { "type": "texture", "ui_score": 68, "raw_score": 57.33, "mask_urls": ["https://..."] },
+  { "type": "pore", "ui_score": 92, "raw_score": 95.34, "mask_urls": ["https://..."] }
 ] } } }
 ```
 
@@ -53,8 +53,14 @@ YouCam server in `server/mock-youcam.js` replies in exactly these shapes.
 - `ui_score`: integer 1-100, deliberately adjusted upward "as a psychological motivator".
   **Proof does its statistics on `raw_score` only**, because a motivational transform is not a
   measurement and would compress real changes. `ui_score` is stored but never tested.
-- HD concerns with sub-regions (`hd_pore`, `hd_wrinkle`, `hd_texture`, `hd_acne`, `hd_skin_type`)
-  come back as one item per `region`; Proof uses `region: "whole"` for the trial and keeps the rest.
+- The overall score (`all.score`), `skin_age` and HD sub-regions appear **only in the ZIP's
+  `score_info.json`**, where HD concerns nest by region name:
+  `"hd_pore": { "whole": {raw_score, ui_score, ...}, "nose": {...}, "forehead": {...}, "cheek": {...} }`.
+  How HD sub-regions look in JSON output is not documented. Proof does not use `all` or
+  `skin_age`. Its parser accepts the flat shape and the region-nested shape (as array items or as
+  an object keyed by concern), and **fails the scan** if any requested concern has no score,
+  rather than saving a partial result. The first live reply is logged (server) and saved to
+  `noise-study/raw-output.json` (repeatability script) so the real shape can be checked.
 
 ## Concerns (`dst_actions`)
 

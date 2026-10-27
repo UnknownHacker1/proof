@@ -123,6 +123,27 @@ test('live mode: sample trials stay simulated, an access code gates live scans',
   }
 });
 
+test('live mode: an unusable YouCam result is an error, never signed scores', async () => {
+  const subject = createSubject({ seed: 7 });
+  const upstream = createMockYouCam({ apiKey: 'live-key', subjectFor: () => ({ subject }), runningPolls: 0, transformOutput: (out) => out.slice(1) });
+  const s = await start({ YOUCAM_API_KEY: 'live-key', DAILY_UNIT_BUDGET: '100' }, { fetchImpl: upstream });
+  try {
+    const r = await post(s.base, '/api/analyze', fakeJpeg(960, 1280));
+    assert.equal(r.status, 502);
+    const j = await r.json();
+    assert.equal(j.ok, false);
+    assert.equal(j.code, 'BadResultShape');
+    assert.equal(j.receipt, undefined);
+    assert.equal(j.scores, undefined);
+    // YouCam billed the task, so the budget guard counts it rather than undercounting real spend.
+    assert.equal(j.unitsCharged, 14);
+    const cfg = await (await fetch(s.base + '/api/config')).json();
+    assert.equal(cfg.budget.usedUnits, 14);
+  } finally {
+    await s.close();
+  }
+});
+
 test('live mode: a rejected key is reported without leaking details', async () => {
   const upstream = createMockYouCam({ apiKey: 'other' });
   const s = await start({ YOUCAM_API_KEY: 'wrong' }, { fetchImpl: upstream });
