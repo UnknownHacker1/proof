@@ -64,9 +64,12 @@ export async function drawVerdictCard(canvas, trial, report, { verified = null, 
   }
 
   // Mini forest plot: claimed concerns first, then up to three others with a verdict.
-  const rows = [...report.targets, ...report.others.filter((r) => r.fit && r.verdict !== 'too-early')].filter((r) => r.fit).slice(0, 6);
-  const plotTop = Math.max(y + 100, 560);
-  const rowH = 86;
+  const plotTop = Math.max(y + 90, 560);
+  // Everything from the plot down to the caption has to clear the footer rule at H - 190.
+  const room = H - 190 - 30 - plotTop - 70;
+  const maxRows = Math.max(3, Math.min(6, Math.floor(room / 66)));
+  const rows = [...report.targets, ...report.others.filter((r) => r.fit && r.verdict !== 'too-early')].filter((r) => r.fit).slice(0, maxRows);
+  const rowH = Math.min(86, Math.floor(room / Math.max(1, rows.length)));
   const labelW = 300;
   const px0 = M + labelW;
   const px1 = W - M;

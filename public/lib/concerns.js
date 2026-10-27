@@ -102,3 +102,27 @@ export const PRODUCT_TYPES = [
   { id: 'eye', name: 'Eye cream', claims: ['dark_circle_v2'] },
   { id: 'other', name: 'Something else', claims: [] },
 ];
+
+// "What to try next" for a concern the product did not fix, minus anything the product
+// name says it already contains (a failed niacinamide serum should not suggest niacinamide).
+const KEYWORDS = { retinoid: /retin|adapalene|tretinoin/, 'vitamin c': /vitamin c|ascorb|vit c/, aha: /\baha\b|glycolic|lactic|mandelic/, bha: /\bbha\b|salicyl/ };
+function keyOf(ingredient) {
+  const s = ingredient.toLowerCase();
+  if (/retinoid|adapalene/.test(s)) return KEYWORDS.retinoid;
+  if (/vitamin c/.test(s)) return KEYWORDS['vitamin c'];
+  if (/\baha/.test(s)) return KEYWORDS.aha;
+  if (/\bbha\b|salicylic/.test(s)) return KEYWORDS.bha;
+  const word = s.split(/[\s(]/)[0];
+  return word.length >= 4 ? new RegExp(word) : null;
+}
+
+export function suggestNext(concern, product = '') {
+  const p = String(product).toLowerCase();
+  const tried = [];
+  const next = [];
+  for (const ing of CONCERNS[concern]?.next ?? []) {
+    const re = keyOf(ing);
+    (re && re.test(p) ? tried : next).push(ing);
+  }
+  return { tried, next };
+}

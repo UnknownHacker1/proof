@@ -85,3 +85,13 @@ test('trial headline reflects the claimed concerns', () => {
   assert.equal(trialHeadline(rep([row()], [row({ concern: 'moisture', verdict: VERDICTS.worse })])).headline, 'Working, with a side effect');
   assert.equal(trialHeadline(rep([row({ verdict: VERDICTS.tooEarly })], [], false)).headline, 'Too early to call');
 });
+
+test('suggestions skip what the failed product already contains', async () => {
+  const { suggestNext } = await import('../public/lib/concerns.js');
+  const a = suggestNext('pore', '10% niacinamide serum');
+  assert.deepEqual(a.tried, ['Niacinamide']);
+  assert.ok(!a.next.includes('Niacinamide') && a.next.includes('Retinoids'));
+  const b = suggestNext('wrinkle', 'Retinol 0.3% night cream');
+  assert.deepEqual(b.tried, ['Retinoids']);
+  assert.deepEqual(suggestNext('moisture', 'Mystery cream').tried, []);
+});

@@ -990,7 +990,9 @@ details[open] summary {
   background: var(--surface);
   border: 1px dashed var(--rule);
   color: var(--soft);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
+  text-align: center;
+  padding: 0.5rem;
 }
 
 .warn-text {

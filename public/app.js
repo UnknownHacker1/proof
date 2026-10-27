@@ -1,5 +1,5 @@
 import { analyzeTrial, estimateNoise, minimumDetectableChange, VERDICTS } from './lib/stats.js';
-import { CONCERNS, PRODUCT_TYPES, noisePrior, label } from './lib/concerns.js';
+import { CONCERNS, PRODUCT_TYPES, noisePrior, label, suggestNext } from './lib/concerns.js';
 import { verdictText, trialHeadline, tone } from './lib/copy.js';
 import { forestPlot, seriesChart, noiseBars } from './lib/charts.js';
 import { mountCapture } from './lib/camera.js';
@@ -468,7 +468,7 @@ async function viewReport(id) {
           <div><dt>Change so far</dt><dd>${sign(r.delta)} pts</dd></div>
           <div><dt>90% range</dt><dd>${sign(r.ci[0])} to ${sign(r.ci[1])}</dd></div>
           <div><dt>Photo noise</dt><dd>±${r.noise.sigma.toFixed(1)}</dd></div>
-          <div><dt>Day-to-day</dt><dd>±${r.fit.tau.toFixed(1)}</dd></div>
+          <div><dt>Day-to-day wobble</dt><dd>${r.fit.tau < 0.05 ? 'none seen' : '±' + r.fit.tau.toFixed(1)}</dd></div>
           <div><dt>p, adjusted</dt><dd>${fmtP(r.delta >= 0 ? r.pImproveAdj : r.pWorseAdj)}</dd></div>
           ${r.provenDay ? `<div><dt>Clear from</dt><dd>day ${r.provenDay}</dd></div>` : ''}
         </dl></details>` : ''}
@@ -501,12 +501,12 @@ async function viewReport(id) {
       <p class="fine">Not claimed by the product, so these get a stricter bar (false discovery rate control across all of them).</p>
       ${rep.others.map(card).join('')}
     </section>
-    ${unresolved.length ? `<section class="next-try"><h2>If it isn't doing the job</h2>${unresolved.map((r) => `<div class="try"><h3>${esc(label(r.concern))}</h3><p>Ingredient classes often used for this: ${CONCERNS[r.concern].next.map(esc).join(', ')}.</p></div>`).join('')}<p class="fine">General cosmetic information, not medical advice. Patch test new products, and start one at a time so your next trial can tell what worked.</p></section>` : ''}
+    ${unresolved.length ? `<section class="next-try"><h2>If it isn't doing the job</h2>${unresolved.map((r) => { const s = suggestNext(r.concern, trial.product); return `<div class="try"><h3>${esc(label(r.concern))}</h3><p>${s.tried.length ? `This product already has ${s.tried.map((x) => esc(x.toLowerCase())).join(' and ')}, so try a different route. ` : ''}Ingredient classes often used for this: ${s.next.map(esc).join(', ')}.</p></div>`; }).join('')}<p class="fine">General cosmetic information, not medical advice. Patch test new products, and start one at a time so your next trial can tell what worked.</p></section>` : ''}
     <section class="log">
       <h2>Photos</h2>
-      <ul class="photolog">${photos
-        .map((s) => `<li>${s.thumb ? `<img src="${s.thumb}" alt="">` : `<span class="nothumb">day ${s.day}</span>`}<span>Day ${s.day}${s.day === 0 ? ' (calibration)' : ''}</span>${s.weight != null && s.weight < 1 ? `<span class="fine warn-text">${esc(s.warnings?.[0] || 'Counted less')}</span>` : ''}</li>`)
-        .join('')}</ul>
+      ${trial.demo ? `<p class="fine">Maya is synthetic, so there are no photos: ${photos.length} simulated scans, ${photos.filter((p) => p.weight != null && p.weight < 1).length} of them flagged for dim light and counted less.</p>` : `<ul class="photolog">${photos
+        .map((s) => `<li>${s.thumb ? `<img src="${s.thumb}" alt="">` : `<span class="nothumb">${trial.demo ? 'synthetic, no photo' : 'photo not kept'}</span>`}<span>Day ${s.day}${s.day === 0 ? ' (calibration)' : ''}</span>${s.weight != null && s.weight < 1 ? `<span class="fine warn-text">${esc(s.warnings?.[0] || 'Counted less')}</span>` : ''}</li>`)
+        .join('')}</ul>`}
       <div class="verify">
         <button class="btn btn-quiet" id="verify" type="button">Check the scan signatures</button>
         <p class="fine" id="verify-out">Every score is signed by the server the moment YouCam returns it, so a shared result can be checked for edits.</p>
