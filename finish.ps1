@@ -22,6 +22,14 @@ Set-Location -LiteralPath $PSScriptRoot
 function Fail([string]$msg) { Write-Host "ERROR: $msg" -ForegroundColor Red; exit 1 }
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 
+if (-not $Video) {
+  # youtube.ps1 saves "proof <link> <date>" lines here.
+  $linksFile = 'C:\Dev\AI Automation\_five_agents\DONKEY\video-links.txt'
+  if (Test-Path -LiteralPath $linksFile) {
+    $saved = Get-Content -LiteralPath $linksFile | Where-Object { $_ -match '^proof\s+(https://\S+)' } | Select-Object -Last 1
+    if ($saved -match '^proof\s+(https://\S+)') { $Video = $Matches[1]; Write-Host "Video link from DONKEY\video-links.txt: $Video" }
+  }
+}
 if (-not ($Live -or $Video -or $Code)) { Fail 'Pass at least one of -Live, -Video, -Code.' }
 foreach ($u in @($Live, $Video)) { if ($u -and $u -notmatch '^https://\S+$') { Fail "Not an https link: $u" } }
 $Live = if ($Live) { $Live.TrimEnd('/') } else { $null }
