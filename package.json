@@ -13,6 +13,8 @@
     "test": "node --test \"test/*.test.js\"",
     "demo:build": "node scripts/make-demo.js",
     "simulate": "node scripts/simulate.js",
-    "noise:measure": "node scripts/measure-noise.js"
+    "noise:measure": "node scripts/measure-noise.js",
+    "noise:from-scans": "node scripts/measure-noise.js --from-scans",
+    "key:check": "node scripts/check-key.js"
   }
 }

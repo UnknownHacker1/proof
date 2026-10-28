@@ -19,9 +19,14 @@ import { imageInfo } from '../server/image-info.js';
 import { createSubject } from '../public/lib/simulate.js';
 import { mean, sd } from '../public/lib/stats.js';
 import { label } from '../public/lib/concerns.js';
+import { readScanLog, calibrationSessions, pooledNoise } from '../server/scan-log.js';
 
 loadDotEnv();
 const cfg = readConfig();
+if (process.argv.includes('--from-scans')) {
+  fromScans(process.argv.includes('--log') ? process.argv[process.argv.indexOf('--log') + 1] : join(ROOT, 'noise-study', 'live-scans.jsonl'));
+  process.exit(0);
+}
 const dir = join(ROOT, 'noise-study');
 if (!existsSync(dir)) {
   console.error('Put 3-8 selfies (JPG/PNG) in ./noise-study/ first.');
@@ -91,6 +96,52 @@ ${table}
 "SD raw" is the measurement noise Proof calibrates for. "Same file twice" shows whether the
 model itself is deterministic; if it is near zero, all the noise comes from the capture
 (light, angle, expression), which is exactly what Proof's capture checks target.
+`;
+  writeFileSync(join(ROOT, 'docs', 'noise-study.md'), md);
+  console.log('Wrote docs/noise-study.md');
+}
+
+// ---- npm run noise:from-scans ----
+// Zero extra units: pool the live day-0 calibration sessions the server logged (SCAN_LOG=1,
+// set by golive.ps1). Each trial's 3 calibration photos are taken a minute apart with the
+// user leaving the frame in between, the same protocol as the 5-photo study above, so the
+// within-session spread is the same measurement noise. Two calibrations (6 photos) give 4
+// degrees of freedom per concern, as many as 5 photos in one session. What this mode cannot
+// do is the "same file twice" determinism check.
+function fromScans(logPath) {
+  const entries = readScanLog(logPath);
+  const sessions = calibrationSessions(entries).filter((s) => s.scans.length >= 2);
+  if (!sessions.length) {
+    console.error(`No calibration sessions with 2+ live photos in ${logPath}.`);
+    console.error('Run the server with SCAN_LOG=1 (golive.ps1 does this) and finish a live calibration first.');
+    process.exit(1);
+  }
+  const rows = pooledNoise(sessions, cfg.concerns);
+  const uiRows = pooledNoise(sessions, cfg.concerns, 'ui');
+  const df = Math.min(...rows.map((r) => r.df));
+  const photos = sessions.reduce((a, s) => a + s.scans.length, 0);
+  console.log(`From the server's scan log: ${sessions.length} calibration session(s), ${photos} live photos, ${df} degrees of freedom per concern.\n`);
+  const table = [
+    '| Concern | Sessions | Photos | Mean raw | SD raw (pooled within session) | SD ui |',
+    '|---|---|---|---|---|---|',
+    ...rows.map((r, i) => `| ${label(r.concern)} (\`${r.concern}\`) | ${r.sessions} | ${r.photos} | ${Number.isFinite(r.mean) ? r.mean.toFixed(1) : 'n/a'} | ${Number.isFinite(r.sd) ? r.sd.toFixed(2) : 'n/a'} | ${Number.isFinite(uiRows[i].sd) ? uiRows[i].sd.toFixed(2) : 'n/a'} |`),
+  ].join('\n');
+  console.log(table);
+  const snippet = rows.map((r) => `  ${r.concern}: ${Math.max(0.8, Number.isFinite(r.sd) ? r.sd : 0).toFixed(1)},`).join('\n');
+  console.log(`\nPaste into public/lib/concerns.js as the noise priors:\n${snippet}\n`);
+  if (df < 4) console.log(`Only ${df} degrees of freedom: finish one more live calibration (3 photos) before trusting these. 4 or more matches the 5-photo study.\n`);
+  const md = `# YouCam Skin Analysis repeatability study
+
+Run ${new Date().toISOString().slice(0, 10)} with \`npm run noise:from-scans\`: the live day-0 calibration photos
+the server logged (${sessions.length} session(s), ${photos} photos of the same person, taken about a minute
+apart, leaving the frame between shots). Noise is the SD pooled within each session (each session
+is centred on its own mean), ${df} degrees of freedom per concern. ${cfg.quality.toUpperCase()} concerns. No extra
+units were spent: these are the calibrations of real trials. Photos are not in the repo.
+
+${table}
+
+"SD raw" is the measurement noise Proof calibrates for. This mode has no "same file twice" check,
+so it does not separate model randomness from capture noise; Proof only needs their sum.
 `;
   writeFileSync(join(ROOT, 'docs', 'noise-study.md'), md);
   console.log('Wrote docs/noise-study.md');

@@ -42,6 +42,8 @@ export function readConfig(env = process.env) {
     receiptSecretIsEphemeral: !env.RECEIPT_SECRET,
     port: Number(env.PORT || 3000),
     mockLatencyMs: Number(env.MOCK_LATENCY_MS ?? 450),
+    // Local noise study: SCAN_LOG=1 logs live scan scores (no photos) to noise-study/live-scans.jsonl.
+    scanLog: !env.SCAN_LOG || env.SCAN_LOG === '0' ? '' : env.SCAN_LOG === '1' ? join(ROOT, 'noise-study', 'live-scans.jsonl') : env.SCAN_LOG,
   };
   return cfg;
 }

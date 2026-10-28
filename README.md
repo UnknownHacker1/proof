@@ -53,7 +53,7 @@ Node 18.17 or newer. No dependencies to install.
 ```bash
 git clone <repo-url> proof && cd proof
 npm start            # http://localhost:3000, sample mode
-npm test             # 47 tests
+npm test             # 50 tests
 ```
 
 To go live, copy `.env.example` to `.env` and set `YOUCAM_API_KEY`. That is the only change. Restart and the badge in the corner says **Live YouCam**.
@@ -100,7 +100,8 @@ Cost per skin-analysis task depends on how many concerns it asks for (documented
 | One check-in | 1 | 14 |
 | Calibration (day 0) | 3 | 42 |
 | Full 28-day trial, check-in every 3 days | 12 | 168 |
-| Repeatability study (`npm run noise:measure`) | 5 + 1 repeat | 84 |
+| Noise study from two live calibrations (`npm run noise:from-scans`) | 0 extra | 0 |
+| Separate repeatability study (`npm run noise:measure`, optional) | 5 + 1 repeat | 84 |
 | Recording the demo video (calibration + one check-in) | 4 | 56 |
 | Failed tasks (dark photo, face too small, etc.) | | 0 |
 | A finished task whose result is missing a concern (shown as an error, not scored) | 1 | 14 |
@@ -131,7 +132,7 @@ Checked by simulation (`npm run simulate`, 2,000 trials per scenario, verdict at
 
 "Shown improving" means Improved since you started or Small improvement. Counting only the 5-point verdict, the null rate across ten concerns is 1.3%.
 
-**These numbers depend on guessed noise levels.** The built-in noise priors are estimates until measured against the live API. If real photo noise were 1.5x the guesses, the any-of-10 false-improvement rate would be 5.8%; at 2x, 7.3%. Your own three calibration photos pull the estimate toward your real level, and `npm run noise:measure` measures the real priors (see `SUBMISSION/MORNING_STEPS.md`).
+**These numbers depend on guessed noise levels.** The built-in noise priors are estimates until measured against the live API. If real photo noise were 1.5x the guesses, the any-of-10 false-improvement rate would be 5.8%; at 2x, 7.3%. Your own three calibration photos pull the estimate toward your real level, and `npm run noise:from-scans` measures the real priors from the live calibration photos, at no extra cost (see `SUBMISSION/MORNING_STEPS.md`).
 
 **What Proof can't tell you:**
 - **Why it changed.** There is no control group. Season, humidity, stress, other products and regression to the mean (people often start a product when their skin is at its worst) move scores too. That is why the verdict says "since you started", not "because of the product".
@@ -151,7 +152,7 @@ Checked by simulation (`npm run simulate`, 2,000 trials per scenario, verdict at
 npm test
 ```
 
-47 tests: statistics (calibration coverage, false positive control, power, change-point, Holm and BH, ranges agreeing with verdicts), the YouCam client (upload flow, polling, retries, error mapping, 404 fallback, documented and nested result shapes, failing loudly on a missing concern), the server (mock and live paths, budget, access code, receipts, path traversal), capture quality checks and verdict wording.
+50 tests: statistics (calibration coverage, false positive control, power, change-point, Holm and BH, ranges agreeing with verdicts), the YouCam client (upload flow, polling, retries, error mapping, 404 fallback, documented and nested result shapes, failing loudly on a missing concern), the server (mock and live paths, budget, access code, receipts, path traversal), capture quality checks and verdict wording.
 
 ## Privacy and safety
 

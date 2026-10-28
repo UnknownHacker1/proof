@@ -8,6 +8,7 @@ import { createMockYouCam } from './mock-youcam.js';
 import { imageInfo } from './image-info.js';
 import { signReceipt, verifyReceipt, trialCode } from './receipts.js';
 import { createBudget } from './budget.js';
+import { createScanLog } from './scan-log.js';
 import { ROOT } from './config.js';
 import { timingSafeEqual, createHash } from 'node:crypto';
 import { createSubject } from '../public/lib/simulate.js';
@@ -75,6 +76,7 @@ export function createApp(cfg, { fetchImpl = globalThis.fetch, log = console } =
   const live = cfg.mode === 'live' ? createYouCamClient({ apiKey: cfg.apiKey, host: cfg.host, fetchImpl }) : null;
   let costCache = null;
   let loggedLiveShape = false;
+  const scanLog = createScanLog(cfg.scanLog);
 
   function subjectFor(id) {
     const key = String(id || 'anon').slice(0, 64);
@@ -144,7 +146,9 @@ export function createApp(cfg, { fetchImpl = globalThis.fetch, log = console } =
           // First live result of this process: keep the raw shape in the log for checking.
           loggedLiveShape = true;
           log.info?.('first live YouCam output:', JSON.stringify(result.output).slice(0, 4000));
+          scanLog?.saveRaw(result.output);
         }
+        scanLog?.append({ at: new Date().toISOString(), day, subject: String(req.headers['x-proof-subject'] || 'anon').slice(0, 64), units: result.unitsCharged, scores: norm.scores, ui: norm.ui });
         budget.charge(ip, result.unitsCharged);
         if (cfg.deleteAfter) {
           masks = await inlineMasks(norm.masks, wantedMasks);
