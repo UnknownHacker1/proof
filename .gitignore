@@ -6,3 +6,5 @@ node_modules/
 noise-study/
 demo/*.mp4
 demo/clips/
+demo/live/
+demo/recut.ps1
